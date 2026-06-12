@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#D4001A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Monaco FitChallenge">
+<title>Monaco FitChallenge</title>
+<link rel="manifest" href="/manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --rouge:#D4001A; --or:#C9A84C; --noir:#0A0A0F;
+  --marine:#1A1A2E; --marine2:#16213E; --blanc:#FFFFFF;
+  --gris:#8A8A9A; --vert:#00C864; --safe-top: env(safe-area-inset-top);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; background:var(--noir); color:var(--blanc); font-family:'Inter',sans-serif; overflow:hidden; }
+
+/* SCREENS */
+.screen { position:fixed; inset:0; display:flex; flex-direction:column; overflow-y:auto; transition:opacity .3s, transform .3s; }
+.screen.hidden { opacity:0; pointer-events:none; transform:translateY(20px); }
+
+/* ── AUTH ── */
+#auth {
+  background:radial-gradient(ellipse 80% 60% at 50% 35%, rgba(212,0,26,0.2) 0%, transparent 70%), var(--noir);
+  align-items:center; justify-content:center; padding:40px 28px; text-align:center;
+}
+.auth-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px); background-size:50px 50px; pointer-events:none; }
+.auth-logo { font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:4px; color:var(--or); margin-bottom:40px; }
+.auth-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(52px,14vw,80px); line-height:.88; letter-spacing:2px; margin-bottom:24px; }
+.auth-title .r { color:var(--rouge); }
+.auth-title .o { color:var(--or); }
+.auth-sub { font-size:14px; color:var(--gris); line-height:1.75; max-width:300px; margin:0 auto 40px; font-weight:300; }
+.auth-form { width:100%; max-width:340px; display:flex; flex-direction:column; gap:12px; }
+.auth-input { background:var(--marine); border:1px solid rgba(255,255,255,0.1); color:var(--blanc); padding:14px 18px; font-family:'Inter',sans-serif; font-size:14px; outline:none; width:100%; }
+.auth-input::placeholder { color:var(--gris); }
+.auth-input:focus { border-color:rgba(212,0,26,0.5); }
+.btn-auth { background:var(--rouge); color:var(--blanc); border:none; padding:16px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; transition:background .2s; }
+.btn-auth:active { background:#b0001a; }
+.btn-auth-secondary { background:transparent; color:var(--gris); border:1px solid rgba(255,255,255,0.1); padding:12px; font-family:'Inter',sans-serif; font-size:13px; cursor:pointer; transition:all .2s; }
+.btn-auth-secondary:active { color:var(--blanc); border-color:rgba(255,255,255,0.3); }
+.auth-divider { color:var(--gris); font-size:12px; }
+.quartier-select { background:var(--marine); border:1px solid rgba(255,255,255,0.1); color:var(--blanc); padding:14px 18px; font-family:'Inter',sans-serif; font-size:14px; outline:none; width:100%; appearance:none; }
+.quartier-select option { background:var(--marine); }
+
+/* ── NAV ── */
+.bottom-nav {
+  position:fixed; bottom:0; left:0; right:0; z-index:200;
+  background:var(--marine); border-top:1px solid rgba(255,255,255,0.06);
+  display:flex; padding-bottom:max(12px, env(safe-area-inset-bottom));
+}
+.nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 8px; background:none; border:none; color:var(--gris); cursor:pointer; transition:color .2s; font-family:'Inter',sans-serif; }
+.nav-btn.active { color:var(--rouge); }
+.nav-btn span { font-size:18px; }
+.nav-btn label { font-size:9px; font-weight:600; letter-spacing:1px; text-transform:uppercase; pointer-events:none; }
+
+/* TOP BAR */
+.top-bar { background:var(--marine); padding:max(14px,calc(var(--safe-top) + 10px)) 20px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
+.top-logo { font-family:'Bebas Neue',sans-serif; font-size:17px; letter-spacing:2px; }
+.top-logo em { color:var(--rouge); font-style:normal; }
+.top-right { display:flex; align-items:center; gap:10px; }
+.streak-pill { display:flex; align-items:center; gap:5px; background:rgba(212,0,26,0.12); border:1px solid rgba(212,0,26,0.2); padding:5px 12px; font-size:12px; font-weight:700; color:var(--rouge); }
+.pts-pill { display:flex; align-items:center; gap:5px; background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.2); padding:5px 12px; font-size:12px; font-weight:700; color:var(--or); }
+
+/* CONTENT */
+.content { flex:1; overflow-y:auto; padding-bottom:80px; }
+
+/* ── HOME ── */
+.home-hero { padding:28px 20px 20px; }
+.home-greeting { font-size:13px; color:var(--gris); margin-bottom:4px; }
+.home-name { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:1px; }
+.home-level { display:inline-flex; align-items:center; gap:6px; background:var(--marine); border:1px solid rgba(255,255,255,0.07); padding:4px 12px; font-size:11px; font-weight:600; letter-spacing:1px; margin-top:8px; }
+.home-level em { color:var(--or); font-style:normal; }
+
+.impact-card { margin:0 20px 20px; background:linear-gradient(135deg, rgba(212,0,26,0.15), rgba(201,168,76,0.08)); border:1px solid rgba(212,0,26,0.2); padding:20px; }
+.impact-label { font-size:10px; color:var(--gris); letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+.impact-value { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--blanc); line-height:1; margin-bottom:6px; }
+.impact-sub { font-size:12px; color:var(--or); }
+.impact-bar { height:3px; background:rgba(255,255,255,0.08); margin-top:14px; border-radius:2px; overflow:hidden; }
+.impact-fill { height:100%; background:linear-gradient(90deg,var(--rouge),var(--or)); border-radius:2px; transition:width 1s ease; }
+
+.section-title { padding:0 20px 12px; font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; display:flex; justify-content:space-between; align-items:center; }
+.section-title a { font-size:11px; color:var(--rouge); font-family:'Inter',sans-serif; font-weight:600; letter-spacing:1px; text-decoration:none; }
+
+/* STATS ROW */
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; margin:0 20px 20px; }
+.stat-card { background:var(--marine); padding:16px 12px; text-align:center; border:1px solid rgba(255,255,255,0.04); }
+.stat-v { font-family:'Bebas Neue',sans-serif; font-size:32px; line-height:1; }
+.stat-l { font-size:10px; color:var(--gris); letter-spacing:1px; text-transform:uppercase; margin-top:3px; }
+
+/* CLASSEMENT */
+.rank-list { padding:0 20px; display:flex; flex-direction:column; gap:2px; }
+.rank-item { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--marine); border:1px solid rgba(255,255,255,0.04); }
+.rank-item.me { background:rgba(212,0,26,0.08); border-color:rgba(212,0,26,0.2); }
+.rank-pos { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gris); width:24px; text-align:center; }
+.rank-pos.top { color:var(--or); }
+.rank-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex-shrink:0; }
+.rank-info { flex:1; }
+.rank-name { font-size:14px; font-weight:600; }
+.rank-detail { font-size:11px; color:var(--gris); margin-top:2px; }
+.rank-pts { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--blanc); }
+.rank-you { font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--rouge); background:rgba(212,0,26,0.1); padding:2px 8px; }
+
+/* CLASSEMENT TABS */
+.class-tabs { display:flex; gap:2px; padding:0 20px 16px; }
+.class-tab { flex:1; padding:10px 6px; background:var(--marine); border:1px solid rgba(255,255,255,0.05); font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; text-align:center; cursor:pointer; color:var(--gris); transition:all .2s; }
+.class-tab.active { background:rgba(212,0,26,0.12); border-color:rgba(212,0,26,0.3); color:var(--blanc); }
+
+/* PARCOURS */
+.parcours-list { padding:0 20px; display:flex; flex-direction:column; gap:3px; }
+.parcours-card { background:var(--marine); border:1px solid rgba(255,255,255,0.05); padding:20px; cursor:pointer; transition:all .2s; position:relative; overflow:hidden; }
+.parcours-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--rouge); transform:scaleY(0); transform-origin:bottom; transition:transform .3s; }
+.parcours-card:active::before { transform:scaleY(1); }
+.parcours-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.parcours-nom { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; }
+.diff-badge { font-size:10px; font-weight:700; letter-spacing:1px; padding:3px 10px; }
+.diff-facile { background:rgba(0,200,100,0.12); color:var(--vert); }
+.diff-intermediaire { background:rgba(201,168,76,0.12); color:var(--or); }
+.diff-sportif { background:rgba(212,0,26,0.12); color:var(--rouge); }
+.diff-elite { background:rgba(138,138,154,0.15); color:var(--gris); }
+.parcours-meta { display:flex; gap:16px; font-size:12px; color:var(--gris); margin-bottom:10px; }
+.parcours-pts { font-size:13px; color:var(--rouge); font-weight:700; }
+.btn-parcours { width:100%; margin-top:14px; padding:12px; background:var(--rouge); color:var(--blanc); border:none; font-family:'Inter',sans-serif; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
+
+/* TRACKER */
+#tracker { background:var(--noir); }
+.tracker-map { flex:1; position:relative; overflow:hidden; min-height:300px; }
+#mapCanvas { width:100%; height:100%; display:block; }
+.tracker-metrics { display:grid; grid-template-columns:repeat(4,1fr); background:var(--marine2); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
+.t-metric { padding:12px 6px; text-align:center; border-right:1px solid rgba(255,255,255,0.04); }
+.t-metric:last-child { border-right:none; }
+.t-val { font-family:'Bebas Neue',sans-serif; font-size:26px; line-height:1; }
+.t-lbl { font-size:9px; color:var(--gris); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
+.tracker-bottom { background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); padding:16px 20px; padding-bottom:max(16px, env(safe-area-inset-bottom)); flex-shrink:0; }
+.tracker-timer { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:3px; text-align:center; margin-bottom:12px; line-height:1; }
+.tracker-timer.running { color:var(--vert); }
+.tracker-timer.paused { color:var(--or); }
+.tracker-btns { display:flex; gap:10px; }
+.btn-track { flex:1; padding:15px; border:none; font-family:'Inter',sans-serif; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; transition:all .2s; }
+.btn-track.start { background:var(--rouge); color:var(--blanc); }
+.btn-track.pause { background:rgba(201,168,76,0.15); color:var(--or); border:1px solid rgba(201,168,76,0.3); }
+.btn-track.stop { background:rgba(255,255,255,0.07); color:var(--blanc); border:1px solid rgba(255,255,255,0.12); max-width:70px; }
+.gps-status { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:1px; padding:5px 12px; margin-bottom:10px; }
+.gps-status.searching { background:rgba(201,168,76,0.12); color:var(--or); }
+.gps-status.active { background:rgba(0,200,100,0.12); color:var(--vert); }
+.gps-status.error { background:rgba(212,0,26,0.12); color:var(--rouge); }
+.gps-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; animation:blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* BORNE NEARBY */
+.borne-nearby { margin:0 10px 10px; background:rgba(0,200,100,0.08); border:1px solid rgba(0,200,100,0.25); padding:12px 16px; display:flex; align-items:center; gap:12px; }
+.borne-nearby-info { flex:1; }
+.borne-nearby-nom { font-size:13px; font-weight:700; color:var(--vert); }
+.borne-nearby-dist { font-size:11px; color:var(--gris); }
+.btn-scan { padding:10px 20px; background:var(--vert); color:var(--noir); border:none; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+
+/* PROFIL */
+.profil-header { padding:28px 20px 20px; display:flex; align-items:center; gap:16px; }
+.profil-avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--rouge),var(--or)); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; flex-shrink:0; }
+.profil-name { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1px; line-height:1; }
+.profil-insta { font-size:12px; color:var(--or); margin-top:4px; }
+.profil-quartier { font-size:12px; color:var(--gris); margin-top:2px; }
+.profil-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; margin:0 20px 20px; }
+.profil-stat { background:var(--marine); padding:18px 12px; text-align:center; border:1px solid rgba(255,255,255,0.04); }
+.profil-stat-v { font-family:'Bebas Neue',sans-serif; font-size:34px; line-height:1; }
+.profil-stat-l { font-size:10px; color:var(--gris); letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+
+/* BADGES */
+.badges-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:0 20px 20px; }
+.badge-item { background:var(--marine); border:1px solid rgba(255,255,255,0.05); padding:14px 8px; text-align:center; }
+.badge-icon { font-size:28px; margin-bottom:6px; }
+.badge-name { font-size:9px; color:var(--gris); letter-spacing:.5px; line-height:1.3; }
+.badge-item.locked { opacity:.35; filter:grayscale(1); }
+
+/* DON MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:300; display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity .3s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal-sheet { background:var(--marine); width:100%; padding:28px 24px; padding-bottom:max(28px, env(safe-area-inset-bottom)); border-top:1px solid rgba(255,255,255,0.08); transform:translateY(100%); transition:transform .3s; }
+.modal-overlay.open .modal-sheet { transform:translateY(0); }
+.modal-title { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:1px; margin-bottom:6px; }
+.modal-sub { font-size:13px; color:var(--gris); margin-bottom:24px; line-height:1.6; }
+.asso-list { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+.asso-btn { padding:14px 16px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--blanc); font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer; text-align:left; transition:all .2s; display:flex; justify-content:space-between; align-items:center; }
+.asso-btn.selected { background:rgba(0,200,100,0.1); border-color:rgba(0,200,100,0.3); }
+.pts-slider { width:100%; margin:12px 0; accent-color:var(--rouge); }
+.btn-don { width:100%; padding:16px; background:var(--vert); color:var(--noir); border:none; font-family:'Inter',sans-serif; font-size:14px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; margin-top:8px; }
+
+/* TOAST */
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--marine); border:1px solid rgba(255,255,255,0.1); padding:12px 24px; font-size:13px; font-weight:600; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; z-index:999; max-width:90vw; text-align:center; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* RESULTS */
+#results { background:var(--noir); align-items:center; justify-content:center; padding:40px 28px; text-align:center; }
+.res-badge { font-size:80px; margin-bottom:20px; animation:badge-pop .5s ease; }
+@keyframes badge-pop { 0%{transform:scale(0) rotate(-15deg)} 80%{transform:scale(1.1) rotate(2deg)} 100%{transform:scale(1) rotate(0)} }
+.res-title { font-family:'Bebas Neue',sans-serif; font-size:52px; letter-spacing:2px; margin-bottom:8px; }
+.res-title em { color:var(--or); font-style:normal; }
+.res-sub { font-size:14px; color:var(--gris); margin-bottom:32px; }
+.res-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:3px; width:100%; max-width:360px; margin:0 auto 28px; }
+.res-stat { background:var(--marine); padding:20px 16px; border:1px solid rgba(255,255,255,0.05); }
+.res-stat-v { font-family:'Bebas Neue',sans-serif; font-size:40px; line-height:1; }
+.res-stat-l { font-size:10px; color:var(--gris); letter-spacing:1.5px; text-transform:uppercase; margin-top:4px; }
+.share-card { width:100%; max-width:360px; margin:0 auto 20px; background:linear-gradient(135deg,var(--marine),rgba(212,0,26,0.12)); border:1px solid rgba(212,0,26,0.2); padding:20px; text-align:left; position:relative; }
+.share-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--rouge),var(--or)); }
+.share-profile { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.share-av { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--rouge),var(--or)); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; }
+.share-nm { font-size:14px; font-weight:700; }
+.share-ig { font-size:11px; color:var(--or); }
+.share-txt { font-size:13px; color:var(--gris); line-height:1.6; margin-bottom:10px; }
+.share-tag { font-size:12px; color:var(--rouge); font-weight:600; }
+.share-btns { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:12px; }
+.share-btn { padding:10px 18px; border:none; cursor:pointer; font-family:'Inter',sans-serif; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+.share-btn.ig { background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); color:#fff; }
+.share-btn.wa { background:#25d366; color:#fff; }
+.share-btn.cp { background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.15); }
+.btn-new-session { background:var(--rouge); color:var(--blanc); border:none; padding:16px 40px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<!-- ── AUTH ── -->
+<div class="screen" id="auth">
+  <div class="auth-grid"></div>
+  <div class="auth-logo">MONACO FITCHALLENGE</div>
+  <h1 class="auth-title"><div>MONACO</div><div class="r">BOUGE</div><div class="o">ENSEMBLE</div></h1>
+  <p class="auth-sub">Marchez dans Monaco, gagnez des points, faites un don à la Croix-Rouge.</p>
+
+  <div class="auth-form" id="loginForm">
+    <input class="auth-input" type="email" id="loginEmail" placeholder="Votre email">
+    <input class="auth-input" type="password" id="loginPassword" placeholder="Mot de passe">
+    <button class="btn-auth" onclick="login()">Se connecter</button>
+    <div class="auth-divider">ou</div>
+    <button class="btn-auth-secondary" onclick="showRegister()">Créer un compte</button>
+  </div>
+
+  <div class="auth-form hidden" id="registerForm">
+    <input class="auth-input" type="text" id="regUsername" placeholder="Nom d'utilisateur">
+    <input class="auth-input" type="text" id="regFullName" placeholder="Prénom et nom">
+    <input class="auth-input" type="text" id="regInstagram" placeholder="@instagram (optionnel)">
+    <select class="quartier-select" id="regQuartier">
+      <option value="frontalier">Frontalier (hors Monaco)</option>
+      <option value="monaco-ville">Monaco-Ville</option>
+      <option value="monte-carlo">Monte-Carlo</option>
+      <option value="condamine">Condamine</option>
+      <option value="fontvieille">Fontvieille</option>
+      <option value="larvotto">Larvotto</option>
+      <option value="moneghetti">Moneghetti</option>
+    </select>
+    <input class="auth-input" type="email" id="regEmail" placeholder="Email">
+    <input class="auth-input" type="password" id="regPassword" placeholder="Mot de passe (min 6 caractères)">
+    <button class="btn-auth" onclick="register()">Créer mon compte</button>
+    <button class="btn-auth-secondary" onclick="showLogin()">Déjà un compte ? Se connecter</button>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div class="screen hidden" id="app">
+  <!-- NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showTab('home')" id="nav-home">
+      <span>🏠</span><label>Accueil</label>
+    </button>
+    <button class="nav-btn" onclick="showTab('parcours')" id="nav-parcours">
+      <span>🗺️</span><label>Parcours</label>
+    </button>
+    <button class="nav-btn" onclick="showTab('tracker')" id="nav-tracker">
+      <span>📍</span><label>Tracker</label>
+    </button>
+    <button class="nav-btn" onclick="showTab('classement')" id="nav-classement">
+      <span>🏆</span><label>Classement</label>
+    </button>
+    <button class="nav-btn" onclick="showTab('profil')" id="nav-profil">
+      <span>👤</span><label>Profil</label>
+    </button>
+  </nav>
+
+  <!-- HOME TAB -->
+  <div id="tab-home" class="content">
+    <div class="top-bar">
+      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div class="top-right">
+        <div class="streak-pill">🔥 <span id="homeStreak">0</span>j</div>
+        <div class="pts-pill">⭐ <span id="homePts">0</span></div>
+      </div>
+    </div>
+    <div class="home-hero">
+      <div class="home-greeting">Bonjour,</div>
+      <div class="home-name" id="homeUsername">—</div>
+      <div class="home-level">Niveau <em id="homeLevel">1</em> · <span id="homeLevelTitle">Marcheur</span></div>
+    </div>
+    <div class="impact-card">
+      <div class="impact-label">Impact caritatif ce mois</div>
+      <div class="impact-value" id="impactVal">0 repas offerts</div>
+      <div class="impact-sub" id="impactSub">Continuez à marcher pour augmenter l'impact !</div>
+      <div class="impact-bar"><div class="impact-fill" id="impactFill" style="width:0%"></div></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-v" id="statKm" style="color:var(--or)">0</div><div class="stat-l">km ce mois</div></div>
+      <div class="stat-card"><div class="stat-v" id="statBornes" style="color:var(--rouge)">0</div><div class="stat-l">bornes scannées</div></div>
+      <div class="stat-card"><div class="stat-v" id="statDons" style="color:var(--vert)">0</div><div class="stat-l">dons effectués</div></div>
+    </div>
+    <div class="section-title">Classement général <a onclick="showTab('classement')">Voir tout →</a></div>
+    <div class="rank-list" id="homeRanking"></div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- PARCOURS TAB -->
+  <div id="tab-parcours" class="content hidden">
+    <div class="top-bar">
+      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div style="font-size:12px;color:var(--gris);">6 parcours officiels</div>
+    </div>
+    <div style="padding:16px 20px 12px;">
+      <div style="font-size:13px;color:var(--gris);line-height:1.6;">Choisissez un parcours guidé ou explorez en mode libre. Scannez les bornes dans l'ordre que vous souhaitez.</div>
+    </div>
+    <div class="parcours-list" id="parcoursListEl"></div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- TRACKER TAB -->
+  <div id="tab-tracker" style="display:flex;flex-direction:column;height:100%;padding-bottom:0;">
+    <div class="top-bar">
+      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div class="gps-status searching" id="gpsStatus">
+        <div class="gps-dot" style="background:var(--or);"></div>
+        <span id="gpsLabel">GPS...</span>
+      </div>
+    </div>
+    <div class="tracker-metrics">
+      <div class="t-metric"><div class="t-val" id="tPas" style="color:var(--vert);">0</div><div class="t-lbl">Pas</div></div>
+      <div class="t-metric"><div class="t-val" id="tDist" style="color:var(--or);">0.00</div><div class="t-lbl">km</div></div>
+      <div class="t-metric"><div class="t-val" id="tCal" style="color:var(--rouge);">0</div><div class="t-lbl">kcal</div></div>
+      <div class="t-metric"><div class="t-val" id="tSpeed" style="color:var(--blanc);">0.0</div><div class="t-lbl">km/h</div></div>
+    </div>
+    <div class="tracker-map">
+      <canvas id="mapCanvas"></canvas>
+      <div id="borneNearby" class="borne-nearby" style="display:none;position:absolute;bottom:0;left:0;right:0;margin:0;">
+        <div class="borne-nearby-info">
+          <div class="borne-nearby-nom" id="nearbyNom">Borne proche</div>
+          <div class="borne-nearby-dist" id="nearbyDist">—</div>
+        </div>
+        <button class="btn-scan" onclick="scanBorne()">📱 Scanner</button>
+      </div>
+    </div>
+    <div class="tracker-bottom">
+      <div class="tracker-timer hidden" id="trackerTimer">00:00</div>
+      <div class="tracker-btns">
+        <button class="btn-track start" id="btnMain" onclick="toggleSession()">▶ Démarrer</button>
+        <button class="btn-track stop hidden" id="btnStop" onclick="stopSession()">■</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASSEMENT TAB -->
+  <div id="tab-classement" class="content hidden">
+    <div class="top-bar">
+      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div style="font-size:11px;color:var(--gris);letter-spacing:1px;">JUIN 2025</div>
+    </div>
+    <div style="padding:16px 20px 0;">
+      <div class="class-tabs">
+        <div class="class-tab active" onclick="switchClassement('general',this)">Général</div>
+        <div class="class-tab" onclick="switchClassement('caritatif',this)">Caritatif</div>
+        <div class="class-tab" onclick="switchClassement('hebdo',this)">Semaine</div>
+        <div class="class-tab" onclick="switchClassement('equipes',this)">Équipes</div>
+      </div>
+    </div>
+    <div class="rank-list" id="classementList"></div>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- PROFIL TAB -->
+  <div id="tab-profil" class="content hidden">
+    <div class="top-bar">
+      <div class="top-logo">MONACO <em>FIT</em></div>
+      <button onclick="logout()" style="background:none;border:none;color:var(--gris);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">Déconnexion</button>
+    </div>
+    <div class="profil-header">
+      <div class="profil-avatar" id="profilAvatar">?</div>
+      <div>
+        <div class="profil-name" id="profilName">—</div>
+        <div class="profil-insta" id="profilInsta"></div>
+        <div class="profil-quartier" id="profilQuartier"></div>
+      </div>
+    </div>
+    <div class="profil-stats">
+      <div class="profil-stat"><div class="profil-stat-v" id="pStatPts" style="color:var(--or);">0</div><div class="profil-stat-l">Points total</div></div>
+      <div class="profil-stat"><div class="profil-stat-v" id="pStatStreak" style="color:var(--rouge);">0</div><div class="profil-stat-l">Streak max</div></div>
+      <div class="profil-stat"><div class="profil-stat-v" id="pStatDons" style="color:var(--vert);">0</div><div class="profil-stat-l">Dons effectués</div></div>
+    </div>
+    <div class="section-title">Mes badges</div>
+    <div class="badges-grid" id="badgesGrid"></div>
+    <div style="padding:0 20px 20px;">
+      <button onclick="openDonModal()" style="width:100%;padding:16px;background:linear-gradient(135deg,rgba(0,200,100,0.15),rgba(0,200,100,0.05));border:1px solid rgba(0,200,100,0.3);color:var(--vert);font-family:'Inter',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">
+        🌱 Convertir mes points en don caritatif
+      </button>
+    </div>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ── RESULTS ── -->
+<div class="screen hidden" id="results">
+  <div class="res-badge">🏅</div>
+  <div class="res-title">Session <em>terminée</em></div>
+  <div class="res-sub" id="resDate">—</div>
+  <div class="res-grid">
+    <div class="res-stat"><div class="res-stat-v" id="resPas" style="color:var(--vert);">0</div><div class="res-stat-l">Pas</div></div>
+    <div class="res-stat"><div class="res-stat-v" id="resDist" style="color:var(--or);">0.00</div><div class="res-stat-l">km</div></div>
+    <div class="res-stat"><div class="res-stat-v" id="resCal" style="color:var(--rouge);">0</div><div class="res-stat-l">kcal</div></div>
+    <div class="res-stat"><div class="res-stat-v" id="resTime">00:00</div><div class="res-stat-l">Durée</div></div>
+  </div>
+  <div class="share-card">
+    <div class="share-profile">
+      <div class="share-av" id="shareAv">S</div>
+      <div><div class="share-nm" id="shareNm">—</div><div class="share-ig" id="shareIg"></div></div>
+    </div>
+    <div class="share-txt" id="shareTxt">Session terminée !</div>
+    <div class="share-tag">#MonacoFitChallenge #Monaco</div>
+  </div>
+  <div class="share-btns">
+    <button class="share-btn ig" onclick="shareIG()">📸 Instagram</button>
+    <button class="share-btn wa" onclick="shareWA()">💬 WhatsApp</button>
+    <button class="share-btn cp" onclick="copyShare()">📋 Copier</button>
+  </div>
+  <button class="btn-new-session" onclick="newSession()">Nouvelle session</button>
+</div>
+
+<!-- ── DON MODAL ── -->
+<div class="modal-overlay" id="donModal" onclick="closeDonModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-title">🌱 Faire un don</div>
+    <div class="modal-sub">Choisissez une association et le nombre de points à convertir. Le don est reversé grâce au pool des commerçants partenaires.</div>
+    <div class="asso-list">
+      <button class="asso-btn" onclick="selectAsso(this,'Croix-Rouge Monégasque')">Croix-Rouge Monégasque <span>❤️</span></button>
+      <button class="asso-btn" onclick="selectAsso(this,'Fight Aids Monaco')">Fight Aids Monaco <span>🎗️</span></button>
+      <button class="asso-btn" onclick="selectAsso(this,'Children & Future')">Children & Future <span>👶</span></button>
+    </div>
+    <div style="font-size:12px;color:var(--gris);margin-bottom:8px;">Points à donner : <strong id="donPtsDisplay" style="color:var(--blanc);">100</strong></div>
+    <input type="range" class="pts-slider" id="donSlider" min="100" max="1000" step="100" value="100" oninput="updateDonSlider(this.value)">
+    <div style="font-size:11px;color:var(--gris);margin-bottom:16px;">Impact estimé : <strong id="donImpact" style="color:var(--vert);">1 repas offert</strong></div>
+    <button class="btn-don" onclick="confirmerDon()">Confirmer le don</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG SUPABASE ──
+const SUPABASE_URL = 'https://epvvosyredaujaftmtzj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwdnZvc3lyZWRhdWphZnRtdHpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyOTI3OTIsImV4cCI6MjA5Njg2ODc5Mn0.enQMbbLdGR1OwnrXLSF5Qm2ilXp9ufj6BYun8qaefs0';
+
+async function sb(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...opts.headers },
+    ...opts
+  });
+  const data = await res.json().catch(() => null);
+  return { ok: res.ok, data, status: res.status };
+}
+
+async function sbAuth(endpoint, body) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/${endpoint}`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return await res.json();
+}
+
+// ── STATE ──
+let currentUser = null;
+let userProfile = null;
+let bornes = [];
+let parcours = [];
+let session = { active: false, paused: false, steps: 0, dist: 0, cal: 0, startTime: null, elapsed: 0, positions: [], lastPos: null, interval: null };
+let gpsWatch = null;
+let mapCenter = null;
+let canvas, ctx;
+let selectedAsso = null;
+let nearbyBorne = null;
+
+// ── SCREENS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+// ── AUTH ──
+function showRegister() {
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('registerForm').classList.remove('hidden');
+}
+function showLogin() {
+  document.getElementById('registerForm').classList.add('hidden');
+  document.getElementById('loginForm').classList.remove('hidden');
+}
+
+async function login() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return showToast('Remplissez tous les champs');
+  const data = await sbAuth('token?grant_type=password', { email, password });
+  if (data.access_token) {
+    currentUser = data.user;
+    localStorage.setItem('mfc_token', data.access_token);
+    localStorage.setItem('mfc_uid', data.user.id);
+    await loadProfile();
+    initApp();
+  } else {
+    showToast('Email ou mot de passe incorrect');
+  }
+}
+
+async function register() {
+  const username = document.getElementById('regUsername').value;
+  const fullName = document.getElementById('regFullName').value;
+  const instagram = document.getElementById('regInstagram').value;
+  const quartier = document.getElementById('regQuartier').value;
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPassword').value;
+  if (!username || !fullName || !email || !password) return showToast('Remplissez tous les champs');
+  if (password.length < 6) return showToast('Mot de passe minimum 6 caractères');
+
+  const authData = await sbAuth('signup', { email, password });
+  if (!authData.user) return showToast("Erreur lors de l'inscription");
+
+  const { ok } = await sb('users', {
+    method: 'POST',
+    body: JSON.stringify({ id: authData.user.id, email, username, full_name: fullName, instagram_handle: instagram || null, quartier })
+  });
+
+  if (ok) {
+    showToast('Compte créé ! Connectez-vous.');
+    showLogin();
+  } else {
+    showToast('Erreur création du profil');
+  }
+}
+
+async function logout() {
+  localStorage.removeItem('mfc_token');
+  localStorage.removeItem('mfc_uid');
+  currentUser = null; userProfile = null;
+  if (gpsWatch) navigator.geolocation.clearWatch(gpsWatch);
+  showScreen('auth');
+}
+
+// ── PROFILE ──
+async function loadProfile() {
+  const uid = localStorage.getItem('mfc_uid');
+  if (!uid) return;
+  const { data } = await sb(`users?id=eq.${uid}&select=*`);
+  if (data && data[0]) {
+    userProfile = data[0];
+    updateProfileUI();
+  }
+}
+
+function updateProfileUI() {
+  if (!userProfile) return;
+  const u = userProfile;
+  const initial = (u.full_name || u.username || '?')[0].toUpperCase();
+  const levels = ['','Marcheur','Explorateur','Athlète','Champion Monaco','Légende'];
+
+  document.getElementById('homeUsername').textContent = u.full_name || u.username;
+  document.getElementById('homeStreak').textContent = u.streak_actuel || 0;
+  document.getElementById('homePts').textContent = (u.points_mensuels || 0).toLocaleString('fr-FR');
+  document.getElementById('homeLevel').textContent = u.niveau || 1;
+  document.getElementById('homeLevelTitle').textContent = levels[u.niveau] || 'Marcheur';
+
+  document.getElementById('profilAvatar').textContent = initial;
+  document.getElementById('profilName').textContent = u.full_name || u.username;
+  document.getElementById('profilInsta').textContent = u.instagram_handle ? `@${u.instagram_handle}` : '';
+  document.getElementById('profilQuartier').textContent = u.quartier || '';
+  document.getElementById('pStatPts').textContent = (u.points_total || 0).toLocaleString('fr-FR');
+  document.getElementById('pStatStreak').textContent = u.streak_max || 0;
+  document.getElementById('pStatDons').textContent = u.points_caritatif || 0;
+
+  document.getElementById('shareAv').textContent = initial;
+  document.getElementById('shareNm').textContent = u.full_name || u.username;
+  document.getElementById('shareIg').textContent = u.instagram_handle ? `@${u.instagram_handle}` : '';
+
+  // Impact
+  const pts = u.points_mensuels || 0;
+  const repas = Math.floor(pts / 500);
+  document.getElementById('impactVal').textContent = repas > 0 ? `${repas} repas offert${repas > 1 ? 's' : ''}` : 'Commencez à marcher !';
+  document.getElementById('impactSub').textContent = repas > 0 ? `Grâce à vos ${pts} points ce mois` : 'Scannez des bornes pour générer des dons';
+  document.getElementById('impactFill').style.width = `${Math.min(100, (pts / 5000) * 100)}%`;
+
+  document.getElementById('statDons').textContent = u.points_caritatif || 0;
+}
+
+// ── INIT APP ──
+async function initApp() {
+  showScreen('app');
+  await loadBornes();
+  await loadParcours();
+  await loadRanking();
+  loadBadges();
+  initMap();
+  initGPS();
+  if (typeof DeviceMotionEvent !== 'undefined') {
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      DeviceMotionEvent.requestPermission().then(p => { if (p === 'granted') window.addEventListener('devicemotion', handleMotion, true); }).catch(() => {});
+    } else {
+      window.addEventListener('devicemotion', handleMotion, true);
+    }
+  }
+}
+
+// ── TABS ──
+function showTab(name) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+  const tab = document.getElementById(`tab-${name}`);
+  if (tab) tab.classList.remove('hidden');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const navBtn = document.getElementById(`nav-${name}`);
+  if (navBtn) navBtn.classList.add('active');
+  if (name === 'tracker') { resizeCanvas(); if (mapCenter) renderMap(); }
+}
+
+// ── BORNES ──
+async function loadBornes() {
+  const { data } = await sb('bornes?actif=eq.true&select=*');
+  if (data) bornes = data;
+}
+
+// ── PARCOURS ──
+async function loadParcours() {
+  const { data } = await sb('parcours?actif=eq.true&select=*');
+  if (data) {
+    parcours = data;
+    renderParcoursList();
+  }
+}
+
+function renderParcoursList() {
+  const el = document.getElementById('parcoursListEl');
+  const diffs = { facile:'diff-facile', intermediaire:'diff-intermediaire', sportif:'diff-sportif', elite:'diff-elite' };
+  const labels = { facile:'Facile', intermediaire:'Intermédiaire', sportif:'Sportif', elite:'Élite' };
+  el.innerHTML = parcours.map(p => `
+    <div class="parcours-card">
+      <div class="parcours-header">
+        <div class="parcours-nom">${p.nom}</div>
+        <div class="diff-badge ${diffs[p.difficulte]||''}">${labels[p.difficulte]||p.difficulte}</div>
+      </div>
+      <div class="parcours-meta">
+        <span>📍 ${p.bornes_ids?.length||0} bornes</span>
+        <span>🚶 ${p.distance_km} km</span>
+        <span>⏱ ~${p.duree_min} min</span>
+      </div>
+      <div class="parcours-pts">+${p.points_completion} pts à la completion</div>
+      <button class="btn-parcours" onclick="startParcours('${p.id}')">Démarrer ce parcours</button>
+    </div>
+  `).join('');
+}
+
+function startParcours(parcoursId) {
+  showTab('tracker');
+  showToast('📍 Mode guidé activé — suivez les bornes sur la carte');
+}
+
+// ── RANKING ──
+async function loadRanking(type = 'general') {
+  const { data } = await sb('users?select=id,username,full_name,quartier,points_mensuels,niveau&order=points_mensuels.desc&limit=10');
+  if (data) renderRanking(data, type);
+}
+
+function renderRanking(users, type) {
+  const uid = localStorage.getItem('mfc_uid');
+  const colors = ['#FFD700','#C0C0C0','#CD7F32'];
+  const html = users.map((u, i) => `
+    <div class="rank-item ${u.id === uid ? 'me' : ''}">
+      <div class="rank-pos ${i < 3 ? 'top' : ''}">${i < 3 ? ['🥇','🥈','🥉'][i] : i+1}</div>
+      <div class="rank-avatar" style="background:${colors[i]||'var(--marine2)'};">${(u.full_name||u.username||'?')[0].toUpperCase()}</div>
+      <div class="rank-info">
+        <div class="rank-name">${u.full_name||u.username}</div>
+        <div class="rank-detail">${u.quartier||'—'}</div>
+      </div>
+      <div class="rank-pts">${(u.points_mensuels||0).toLocaleString('fr-FR')}</div>
+      ${u.id === uid ? '<div class="rank-you">Vous</div>' : ''}
+    </div>
+  `).join('');
+  document.getElementById('homeRanking').innerHTML = html;
+  document.getElementById('classementList').innerHTML = html;
+}
+
+function switchClassement(type, el) {
+  document.querySelectorAll('.class-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadRanking(type);
+}
+
+// ── BADGES ──
+async function loadBadges() {
+  const { data: allBadges } = await sb('badges?select=*');
+  const uid = localStorage.getItem('mfc_uid');
+  const { data: userBadges } = await sb(`user_badges?user_id=eq.${uid}&select=badge_id`);
+  if (!allBadges) return;
+  const earned = new Set((userBadges||[]).map(b => b.badge_id));
+  const el = document.getElementById('badgesGrid');
+  el.innerHTML = allBadges.map(b => `
+    <div class="badge-item ${earned.has(b.id) ? '' : 'locked'}">
+      <div class="badge-icon">${b.icone||'🏅'}</div>
+      <div class="badge-name">${b.nom}</div>
+    </div>
+  `).join('');
+}
+
+// ── GPS & MAP ──
+function initMap() {
+  canvas = document.getElementById('mapCanvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  drawMapPlaceholder();
+}
+
+function resizeCanvas() {
+  const area = canvas?.parentElement;
+  if (!area || !canvas) return;
+  canvas.width = area.offsetWidth;
+  canvas.height = area.offsetHeight;
+  if (mapCenter) renderMap(); else drawMapPlaceholder();
+}
+
+function drawMapPlaceholder() {
+  if (!ctx || !canvas) return;
+  ctx.fillStyle = '#0d1520';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+  ctx.fillStyle = 'rgba(138,138,154,0.4)'; ctx.font = '13px Inter'; ctx.textAlign = 'center';
+  ctx.fillText('En attente du GPS...', canvas.width/2, canvas.height/2);
+}
+
+const tileCache = {};
+function latLonToPixel(lat, lon, center, zoom) {
+  const n = Math.pow(2, zoom), ts = 256;
+  const toTilePixel = (la, lo) => {
+    const x = (lo + 180) / 360 * n * ts;
+    const lr = la * Math.PI / 180;
+    const y = (1 - Math.log(Math.tan(lr) + 1/Math.cos(lr)) / Math.PI) / 2 * n * ts;
+    return { x, y };
+  };
+  const p = toTilePixel(lat, lon);
+  const c = toTilePixel(center.lat, center.lon);
+  return { x: canvas.width/2 + (p.x - c.x), y: canvas.height/2 + (p.y - c.y) };
+}
+
+function renderMap() {
+  if (!ctx || !canvas || !mapCenter) return;
+  const zoom = 17, ts = 256, n = Math.pow(2, zoom);
+  ctx.fillStyle = '#0d1520'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const cTX = (mapCenter.lon + 180) / 360 * n;
+  const cLatR = mapCenter.lat * Math.PI / 180;
+  const cTY = (1 - Math.log(Math.tan(cLatR) + 1/Math.cos(cLatR)) / Math.PI) / 2 * n;
+  const tilesX = Math.ceil(canvas.width / ts) + 2;
+  const tilesY = Math.ceil(canvas.height / ts) + 2;
+  for (let tx = Math.floor(cTX - tilesX/2); tx <= Math.floor(cTX + tilesX/2); tx++) {
+    for (let ty = Math.floor(cTY - tilesY/2); ty <= Math.floor(cTY + tilesY/2); ty++) {
+      const key = `${zoom}/${tx}/${ty}`;
+      if (!tileCache[key]) {
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.src = `https://${'abc'[(tx+ty)%3]}.tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+        img.onload = () => { tileCache[key] = img; renderMap(); };
+        tileCache[key] = img; continue;
+      }
+      const img = tileCache[key];
+      if (img.complete && img.naturalWidth > 0) {
+        const px = canvas.width/2 + (tx - cTX) * ts;
+        const py = canvas.height/2 + (ty - cTY) * ts;
+        ctx.globalAlpha = 1; ctx.drawImage(img, px, py, ts, ts);
+        ctx.globalAlpha = .5; ctx.fillStyle = '#0d1520'; ctx.fillRect(px, py, ts, ts);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+  // Trail
+  if (session.positions.length > 1) {
+    ctx.beginPath(); ctx.strokeStyle = '#D4001A'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    session.positions.forEach((p, i) => {
+      const px = latLonToPixel(p.lat, p.lon, mapCenter, zoom);
+      if (i === 0) ctx.moveTo(px.x, px.y); else ctx.lineTo(px.x, px.y);
+    });
+    ctx.shadowColor = 'rgba(212,0,26,0.6)'; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  // Bornes
+  bornes.forEach(b => {
+    const px = latLonToPixel(b.latitude, b.longitude, mapCenter, zoom);
+    if (px.x < -20 || px.x > canvas.width+20 || px.y < -20 || px.y > canvas.height+20) return;
+    const pulse = 12 + 4 * Math.sin(Date.now() / 600);
+    ctx.beginPath(); ctx.arc(px.x, px.y, pulse, 0, Math.PI*2);
+    ctx.fillStyle = b.type === 'commercant' ? 'rgba(255,255,255,0.08)' : 'rgba(212,0,26,0.1)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px.x, px.y, 7, 0, Math.PI*2);
+    ctx.fillStyle = b.type === 'commercant' ? '#FFFFFF' : '#D4001A'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px.x, px.y, 7, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+  });
+  // Position
+  const cp = latLonToPixel(mapCenter.lat, mapCenter.lon, mapCenter, zoom);
+  const pr = 10 + 5 * Math.sin(Date.now() / 500);
+  ctx.beginPath(); ctx.arc(cp.x, cp.y, pr, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(212,0,26,0.15)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cp.x, cp.y, 10, 0, Math.PI*2);
+  ctx.fillStyle = '#D4001A'; ctx.fill();
+  ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cp.x, cp.y, 4, 0, Math.PI*2);
+  ctx.fillStyle = '#FFFFFF'; ctx.fill();
+  if (session.active) requestAnimationFrame(renderMap);
+}
+
+function initGPS() {
+  if (!navigator.geolocation) return;
+  const pill = document.getElementById('gpsStatus');
+  const label = document.getElementById('gpsLabel');
+  gpsWatch = navigator.geolocation.watchPosition(pos => {
+    const { latitude: lat, longitude: lon, accuracy, speed } = pos.coords;
+    pill.className = 'gps-status active';
+    label.textContent = `GPS ±${Math.round(accuracy)}m`;
+    document.getElementById('gpsStatus').querySelector('.gps-dot').style.background = 'var(--vert)';
+    mapCenter = { lat, lon };
+    document.getElementById('tSpeed').textContent = speed ? (speed*3.6).toFixed(1) : '0.0';
+    checkNearbyBornes(lat, lon);
+    if (session.active && !session.paused) {
+      if (session.lastPos) {
+        const d = haversine(session.lastPos.lat, session.lastPos.lon, lat, lon);
+        if (d > 2 && d < 200) {
+          session.dist += d;
+          session.cal = Math.round(session.dist / 1000 * 65);
+          session.positions.push({ lat, lon });
+          document.getElementById('tDist').textContent = (session.dist/1000).toFixed(2);
+          document.getElementById('tCal').textContent = session.cal;
+        }
+      } else { session.positions.push({ lat, lon }); }
+      session.lastPos = { lat, lon };
+    }
+    renderMap();
+  }, err => {
+    pill.className = 'gps-status error'; label.textContent = 'GPS indisponible';
+  }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 });
+  setInterval(renderMap, 3000);
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function checkNearbyBornes(lat, lon) {
+  let closest = null, minDist = Infinity;
+  bornes.forEach(b => {
+    const d = haversine(lat, lon, b.latitude, b.longitude);
+    if (d < minDist) { minDist = d; closest = b; }
+  });
+  const nearby = document.getElementById('borneNearby');
+  if (closest && minDist < 60) {
+    nearbyBorne = closest;
+    document.getElementById('nearbyNom').textContent = closest.nom;
+    document.getElementById('nearbyDist').textContent = `${Math.round(minDist)}m — Scannez pour +${closest.points_scan} pts`;
+    nearby.style.display = 'flex';
+  } else {
+    nearbyBorne = null;
+    nearby.style.display = 'none';
+  }
+}
+
+// ── PEDOMETER ──
+let lastAcc = null, lastStepTime = 0, accelHistory = [], stepThreshold = 10;
+function handleMotion(e) {
+  if (!session.active || session.paused) return;
+  const acc = e.accelerationIncludingGravity; if (!acc) return;
+  const mag = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+  accelHistory.push(mag); if (accelHistory.length > 5) accelHistory.shift();
+  const avg = accelHistory.reduce((a,b) => a+b, 0) / accelHistory.length;
+  const now = Date.now();
+  if (mag > avg + stepThreshold && now - lastStepTime > 280) {
+    lastStepTime = now; session.steps++;
+    document.getElementById('tPas').textContent = session.steps.toLocaleString('fr-FR');
+  }
+}
+
+// ── SESSION ──
+function toggleSession() {
+  const btn = document.getElementById('btnMain');
+  const stopBtn = document.getElementById('btnStop');
+  const timer = document.getElementById('trackerTimer');
+  if (!session.active) {
+    session.active = true; session.paused = false;
+    session.steps = 0; session.dist = 0; session.cal = 0;
+    session.positions = []; session.lastPos = null;
+    session.startTime = Date.now(); session.elapsed = 0;
+    ['tPas','tDist','tCal','tSpeed'].forEach(id => document.getElementById(id).textContent = id==='tDist'?'0.00':'0');
+    btn.textContent = '⏸ Pause'; btn.className = 'btn-track pause';
+    stopBtn.classList.remove('hidden'); timer.classList.remove('hidden');
+    timer.className = 'tracker-timer running';
+    session.interval = setInterval(updateTimer, 1000);
+    renderMap(); showToast('▶ Session démarrée');
+  } else if (!session.paused) {
+    session.paused = true; session.elapsed += Date.now() - session.startTime;
+    clearInterval(session.interval);
+    btn.textContent = '▶ Reprendre'; btn.className = 'btn-track start';
+    timer.className = 'tracker-timer paused'; showToast('⏸ Session en pause');
+  } else {
+    session.paused = false; session.startTime = Date.now();
+    btn.textContent = '⏸ Pause'; btn.className = 'btn-track pause';
+    timer.className = 'tracker-timer running';
+    session.interval = setInterval(updateTimer, 1000);
+    renderMap(); showToast('▶ Session reprise');
+  }
+}
+
+function stopSession() {
+  if (!session.active) return;
+  session.active = false; session.paused = false;
+  clearInterval(session.interval);
+  const totalMs = session.elapsed + (Date.now() - session.startTime);
+  saveSession(totalMs);
+  showResults(totalMs);
+}
+
+function updateTimer() {
+  const ms = session.elapsed + (Date.now() - session.startTime);
+  const s = Math.floor(ms/1000), m = Math.floor(s/60);
+  document.getElementById('trackerTimer').textContent = `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+async function saveSession(totalMs) {
+  const uid = localStorage.getItem('mfc_uid'); if (!uid) return;
+  const duree = Math.floor(totalMs / 1000);
+  await sb('sessions', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: uid, mode: 'libre', statut: 'termine', fin: new Date().toISOString(), duree_secondes: duree, distance_metres: Math.round(session.dist), pas: session.steps, calories: session.cal, points_gagnes: 0 })
+  });
+  await sb(`users?id=eq.${uid}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ updated_at: new Date().toISOString() })
+  });
+}
+
+function showResults(totalMs) {
+  const s = Math.floor(totalMs/1000), m = Math.floor(s/60);
+  const timeStr = `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const dist = (session.dist/1000).toFixed(2);
+  document.getElementById('resPas').textContent = session.steps.toLocaleString('fr-FR');
+  document.getElementById('resDist').textContent = dist;
+  document.getElementById('resCal').textContent = session.cal;
+  document.getElementById('resTime').textContent = timeStr;
+  document.getElementById('resDate').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('shareTxt').textContent = `J'ai parcouru ${dist}km à Monaco — ${session.steps} pas en ${timeStr} 💪`;
+  showScreen('results');
+  document.getElementById('btnMain').textContent = '▶ Démarrer';
+  document.getElementById('btnMain').className = 'btn-track start';
+  document.getElementById('btnStop').classList.add('hidden');
+  document.getElementById('trackerTimer').classList.add('hidden');
+}
+
+function newSession() { loadProfile(); showScreen('app'); showTab('home'); }
+
+// ── SCAN ──
+async function scanBorne() {
+  if (!nearbyBorne || !mapCenter) return showToast('Approchez-vous de la borne');
+  const uid = localStorage.getItem('mfc_uid'); if (!uid) return;
+  const d = haversine(mapCenter.lat, mapCenter.lon, nearbyBorne.latitude, nearbyBorne.longitude);
+  if (d > 60) return showToast('Trop loin de la borne');
+  const { ok, data } = await sb('scans', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: uid, borne_id: nearbyBorne.id, latitude: mapCenter.lat, longitude: mapCenter.lon, precision_metres: 10, valide: true, points_credites: nearbyBorne.points_scan, scanne_date: new Date().toISOString().split('T')[0] })
+  });
+  if (ok) {
+    await sb(`users?id=eq.${uid}`, { method: 'PATCH', body: JSON.stringify({ points_total: (userProfile?.points_total||0) + nearbyBorne.points_scan, points_mensuels: (userProfile?.points_mensuels||0) + nearbyBorne.points_scan, dernier_scan: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }) });
+    showToast(`✅ +${nearbyBorne.points_scan} pts — ${nearbyBorne.nom}`);
+    await loadProfile(); nearbyBorne = null;
+    document.getElementById('borneNearby').style.display = 'none';
+  } else {
+    showToast('Déjà scanné aujourd\'hui ou erreur');
+  }
+}
+
+// ── DONS ──
+function openDonModal() {
+  document.getElementById('donModal').classList.add('open');
+  const maxPts = Math.min(userProfile?.points_mensuels || 0, 1000);
+  document.getElementById('donSlider').max = maxPts || 1000;
+}
+function closeDonModal(e) { if (e.target === document.getElementById('donModal')) document.getElementById('donModal').classList.remove('open'); }
+function selectAsso(btn, nom) { document.querySelectorAll('.asso-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); selectedAsso = nom; }
+function updateDonSlider(val) {
+  document.getElementById('donPtsDisplay').textContent = val;
+  document.getElementById('donImpact').textContent = `${Math.max(1, Math.floor(val/500))} repas offert${val >= 1000 ? 's' : ''}`;
+}
+async function confirmerDon() {
+  if (!selectedAsso) return showToast('Choisissez une association');
+  const pts = parseInt(document.getElementById('donSlider').value);
+  const uid = localStorage.getItem('mfc_uid'); if (!uid) return;
+  const mois = new Date().toISOString().slice(0,7);
+  await sb('dons', { method: 'POST', body: JSON.stringify({ user_id: uid, association_nom: selectedAsso, points_donnes: pts, valeur_eur: pts * 0.01, mois }) });
+  await sb(`users?id=eq.${uid}`, { method: 'PATCH', body: JSON.stringify({ points_caritatif: (userProfile?.points_caritatif||0) + pts, points_mensuels: Math.max(0,(userProfile?.points_mensuels||0) - pts), updated_at: new Date().toISOString() }) });
+  document.getElementById('donModal').classList.remove('open');
+  showToast(`🌱 Don effectué à ${selectedAsso} !`);
+  await loadProfile();
+}
+
+// ── SHARE ──
+function getShareText() { return `${document.getElementById('shareTxt').textContent} #MonacoFitChallenge #Monaco #FitLife`; }
+function shareIG() { navigator.clipboard?.writeText(getShareText()); showToast('📋 Texte copié — collez sur Instagram !'); }
+function shareWA() { window.open(`https://wa.me/?text=${encodeURIComponent(getShareText())}`, '_blank'); }
+function copyShare() { navigator.clipboard?.writeText(getShareText()).then(() => showToast('✅ Copié !')); }
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── AUTO LOGIN ──
+window.addEventListener('load', async () => {
+  const uid = localStorage.getItem('mfc_uid');
+  if (uid) { await loadProfile(); if (userProfile) initApp(); }
+});
+</script>
+</body>
+</html>
