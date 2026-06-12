@@ -127,14 +127,14 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
 
 /* TRACKER */
 #tracker { background:var(--noir); }
-.tracker-map { flex:1; position:relative; overflow:hidden; min-height:300px; }
+.tracker-map { flex:1; position:relative; overflow:hidden; min-height:200px; max-height:calc(100vh - 280px); }
 #mapCanvas { width:100%; height:100%; display:block; }
 .tracker-metrics { display:grid; grid-template-columns:repeat(4,1fr); background:var(--marine2); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
 .t-metric { padding:12px 6px; text-align:center; border-right:1px solid rgba(255,255,255,0.04); }
 .t-metric:last-child { border-right:none; }
 .t-val { font-family:'Bebas Neue',sans-serif; font-size:26px; line-height:1; }
 .t-lbl { font-size:9px; color:var(--gris); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
-.tracker-bottom { background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); padding:16px 20px; padding-bottom:max(16px, env(safe-area-inset-bottom)); flex-shrink:0; }
+.tracker-bottom { background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); padding:16px 20px; padding-bottom:max(16px, env(safe-area-inset-bottom)); flex-shrink:0; position:relative; z-index:10; }
 .tracker-timer { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:3px; text-align:center; margin-bottom:12px; line-height:1; }
 .tracker-timer.running { color:var(--vert); }
 .tracker-timer.paused { color:var(--or); }
@@ -342,14 +342,29 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
           <div class="borne-nearby-nom" id="nearbyNom">Borne proche</div>
           <div class="borne-nearby-dist" id="nearbyDist">—</div>
         </div>
-        <button class="btn-scan" onclick="scanBorne()">📱 Scanner</button>
+        <button class="btn-scan" id="btnScan" onclick="scanBorne()" style="display:none;">📱 Valider</button>
+      </div>
+      <!-- QR Scanner for commercants -->
+      <div id="qrScannerBtn" style="position:absolute;top:12px;right:12px;z-index:20;">
+        <button onclick="openQRScanner()" style="background:var(--blanc);color:var(--noir);border:none;padding:10px 14px;font-family:Inter,sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.4);">
+          📷 Commerce
+        </button>
+      </div>
+      <!-- QR Scanner Modal -->
+      <div id="qrModal" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.95);z-index:50;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="color:var(--blanc);font-family:Bebas Neue,sans-serif;font-size:24px;letter-spacing:2px;margin-bottom:8px;">SCANNER UN COMMERCE</div>
+        <div style="color:var(--gris);font-size:13px;margin-bottom:24px;text-align:center;padding:0 20px;">Pointez votre appareil photo vers le QR code du commerce partenaire</div>
+        <video id="qrVideo" style="width:280px;height:280px;object-fit:cover;border:2px solid var(--rouge);"></video>
+        <canvas id="qrCanvas" style="display:none;"></canvas>
+        <div id="qrResult" style="margin-top:16px;font-size:13px;color:var(--or);text-align:center;min-height:20px;"></div>
+        <button onclick="closeQRScanner()" style="margin-top:20px;background:none;border:1px solid rgba(255,255,255,0.2);color:var(--gris);padding:10px 24px;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;">Fermer</button>
       </div>
     </div>
     <div class="tracker-bottom">
-      <div class="tracker-timer hidden" id="trackerTimer">00:00</div>
+      <div class="tracker-timer" id="trackerTimer" style="display:none;">00:00</div>
       <div class="tracker-btns">
         <button class="btn-track start" id="btnMain" onclick="toggleSession()">▶ Démarrer</button>
-        <button class="btn-track stop hidden" id="btnStop" onclick="stopSession()">■</button>
+        <button class="btn-track stop" id="btnStop" onclick="stopSession()" style="display:none;">■</button>
       </div>
     </div>
   </div>
@@ -843,7 +858,7 @@ function initGPS() {
     document.getElementById('gpsStatus').querySelector('.gps-dot').style.background = 'var(--vert)';
     mapCenter = { lat, lon };
     document.getElementById('tSpeed').textContent = speed ? (speed*3.6).toFixed(1) : '0.0';
-    checkNearbyBornes(lat, lon);
+    checkNearbyBornes(lat, lon, speed);
     if (session.active && !session.paused) {
       if (session.lastPos) {
         const d = haversine(session.lastPos.lat, session.lastPos.lon, lat, lon);
@@ -870,21 +885,44 @@ function haversine(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-function checkNearbyBornes(lat, lon) {
+// Dwell timer — must stay near borne for 5 seconds
+let dwellTimer = null, dwellBorne = null, currentSpeed = 0;
+
+function checkNearbyBornes(lat, lon, speed) {
+  currentSpeed = speed || 0;
   let closest = null, minDist = Infinity;
   bornes.forEach(b => {
     const d = haversine(lat, lon, b.latitude, b.longitude);
     if (d < minDist) { minDist = d; closest = b; }
   });
   const nearby = document.getElementById('borneNearby');
-  if (closest && minDist < 60) {
-    nearbyBorne = closest;
-    document.getElementById('nearbyNom').textContent = closest.nom;
-    document.getElementById('nearbyDist').textContent = `${Math.round(minDist)}m — Scannez pour +${closest.points_scan} pts`;
-    nearby.style.display = 'flex';
+
+  // Check official bornes via GPS (25m radius, speed < 7km/h)
+  if (closest && closest.type === 'officielle' && minDist < 25 && currentSpeed < 1.94) {
+    if (dwellBorne?.id !== closest.id) {
+      // New borne detected — start 5 second dwell timer
+      dwellBorne = closest;
+      clearTimeout(dwellTimer);
+      document.getElementById('nearbyNom').textContent = '⏱ ' + closest.nom;
+      document.getElementById('nearbyDist').textContent = `${Math.round(minDist)}m — Restez 5s pour valider`;
+      nearby.style.display = 'flex';
+      document.getElementById('btnScan').style.display = 'none';
+      dwellTimer = setTimeout(() => {
+        if (dwellBorne?.id === closest.id) {
+          nearbyBorne = closest;
+          document.getElementById('nearbyNom').textContent = '✅ ' + closest.nom;
+          document.getElementById('nearbyDist').textContent = `${Math.round(minDist)}m — Prêt à valider !`;
+          document.getElementById('btnScan').style.display = 'block';
+        }
+      }, 5000);
+    }
   } else {
+    // Left the zone
+    clearTimeout(dwellTimer);
+    dwellBorne = null;
     nearbyBorne = null;
     nearby.style.display = 'none';
+    document.getElementById('btnScan').style.display = 'none';
   }
 }
 
@@ -915,7 +953,7 @@ function toggleSession() {
     session.startTime = Date.now(); session.elapsed = 0;
     ['tPas','tDist','tCal','tSpeed'].forEach(id => document.getElementById(id).textContent = id==='tDist'?'0.00':'0');
     btn.textContent = '⏸ Pause'; btn.className = 'btn-track pause';
-    stopBtn.classList.remove('hidden'); timer.classList.remove('hidden');
+    stopBtn.style.display = 'block'; timer.style.display = 'block';
     timer.className = 'tracker-timer running';
     session.interval = setInterval(updateTimer, 1000);
     renderMap(); showToast('▶ Session démarrée');
@@ -975,7 +1013,7 @@ function showResults(totalMs) {
   document.getElementById('btnMain').textContent = '▶ Démarrer';
   document.getElementById('btnMain').className = 'btn-track start';
   document.getElementById('btnStop').classList.add('hidden');
-  document.getElementById('trackerTimer').classList.add('hidden');
+  document.getElementById('trackerTimer').style.display = 'none';
 }
 
 function newSession() { loadProfile(); showScreen('app'); showTab('home'); }
@@ -1029,6 +1067,70 @@ function getShareText() { return `${document.getElementById('shareTxt').textCont
 function shareIG() { navigator.clipboard?.writeText(getShareText()); showToast('📋 Texte copié — collez sur Instagram !'); }
 function shareWA() { window.open(`https://wa.me/?text=${encodeURIComponent(getShareText())}`, '_blank'); }
 function copyShare() { navigator.clipboard?.writeText(getShareText()).then(() => showToast('✅ Copié !')); }
+
+
+// ── QR SCANNER (COMMERCANTS) ──
+let qrStream = null;
+async function openQRScanner() {
+  const modal = document.getElementById('qrModal');
+  modal.style.display = 'flex';
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('qrVideo');
+    video.srcObject = qrStream;
+    video.play();
+    scanQRFrame();
+  } catch(e) {
+    document.getElementById('qrResult').textContent = 'Caméra non disponible';
+  }
+}
+
+function closeQRScanner() {
+  document.getElementById('qrModal').style.display = 'none';
+  if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+}
+
+function scanQRFrame() {
+  const video = document.getElementById('qrVideo');
+  const canvas = document.getElementById('qrCanvas');
+  if (!qrStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    requestAnimationFrame(scanQRFrame); return;
+  }
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  const ctx2 = canvas.getContext('2d');
+  ctx2.drawImage(video, 0, 0);
+  // Check URL manually - user can also type the borne slug
+  requestAnimationFrame(scanQRFrame);
+}
+
+async function scanCommerceBySlug(slug) {
+  const uid = localStorage.getItem('mfc_uid'); if (!uid) return;
+  const { data: borneData } = await sb(`bornes?slug=eq.${slug}&type=eq.commercant&actif=eq.true&select=*`);
+  if (!borneData || !borneData[0]) { showToast('Commerce non reconnu'); return; }
+  const borne = borneData[0];
+  const { ok } = await sb('scans', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: uid, borne_id: borne.id, latitude: mapCenter?.lat || 0, longitude: mapCenter?.lon || 0, precision_metres: 0, valide: true, points_credites: borne.points_scan, scanne_date: new Date().toISOString().split('T')[0] })
+  });
+  if (ok) {
+    await sb(`users?id=eq.${uid}`, { method: 'PATCH', body: JSON.stringify({ points_total: (userProfile?.points_total||0) + borne.points_scan, points_mensuels: (userProfile?.points_mensuels||0) + borne.points_scan, updated_at: new Date().toISOString() }) });
+    closeQRScanner();
+    showToast(`✅ +${borne.points_scan} pts — ${borne.nom} — Réduction -5% active !`);
+    await loadProfile();
+  } else {
+    showToast('Déjà scanné aujourd\'hui');
+  }
+}
+
+// Handle QR scan redirect: /scan/[slug]
+if (window.location.pathname.startsWith('/scan/')) {
+  const slug = window.location.pathname.replace('/scan/', '');
+  window.addEventListener('load', async () => {
+    const uid = localStorage.getItem('mfc_uid');
+    if (!uid) { showToast('Connectez-vous pour scanner'); return; }
+    await scanCommerceBySlug(slug);
+  });
+}
 
 // ── TOAST ──
 function showToast(msg) {
