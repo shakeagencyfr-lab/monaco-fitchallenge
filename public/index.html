@@ -308,7 +308,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   </div>
 
   <!-- PARCOURS TAB -->
-  <div id="tab-parcours" class="content hidden">
+  <div id="tab-parcours" class="content" style="display:none;">
     <div class="top-bar">
       <div class="top-logo">MONACO <em>FIT</em></div>
       <div style="font-size:12px;color:var(--gris);">6 parcours officiels</div>
@@ -321,7 +321,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   </div>
 
   <!-- TRACKER TAB -->
-  <div id="tab-tracker" style="display:flex;flex-direction:column;height:100%;padding-bottom:0;">
+  <div id="tab-tracker" style="display:none;flex-direction:column;height:100%;padding-bottom:0;">
     <div class="top-bar">
       <div class="top-logo">MONACO <em>FIT</em></div>
       <div class="gps-status searching" id="gpsStatus">
@@ -355,7 +355,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   </div>
 
   <!-- CLASSEMENT TAB -->
-  <div id="tab-classement" class="content hidden">
+  <div id="tab-classement" class="content" style="display:none;">
     <div class="top-bar">
       <div class="top-logo">MONACO <em>FIT</em></div>
       <div style="font-size:11px;color:var(--gris);letter-spacing:1px;">JUIN 2025</div>
@@ -373,7 +373,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   </div>
 
   <!-- PROFIL TAB -->
-  <div id="tab-profil" class="content hidden">
+  <div id="tab-profil" class="content" style="display:none;">
     <div class="top-bar">
       <div class="top-logo">MONACO <em>FIT</em></div>
       <button onclick="logout()" style="background:none;border:none;color:var(--gris);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">Déconnexion</button>
@@ -517,28 +517,39 @@ async function login() {
 }
 
 async function register() {
-  const username = document.getElementById('regUsername').value;
-  const fullName = document.getElementById('regFullName').value;
-  const instagram = document.getElementById('regInstagram').value;
+  const username = document.getElementById('regUsername').value.trim();
+  const fullName = document.getElementById('regFullName').value.trim();
+  const instagram = document.getElementById('regInstagram').value.trim();
   const quartier = document.getElementById('regQuartier').value;
-  const email = document.getElementById('regEmail').value;
+  const email = document.getElementById('regEmail').value.trim();
   const password = document.getElementById('regPassword').value;
   if (!username || !fullName || !email || !password) return showToast('Remplissez tous les champs');
   if (password.length < 6) return showToast('Mot de passe minimum 6 caractères');
 
-  const authData = await sbAuth('signup', { email, password });
-  if (!authData.user) return showToast("Erreur lors de l'inscription");
+  showToast('Création du compte...');
+  const authData = await sbAuth('signup', { email, password, options: { data: { username, full_name: fullName, quartier } } });
 
-  const { ok } = await sb('users', {
+  if (authData.error) return showToast('Erreur : ' + (authData.error.message || 'Réessayez'));
+  if (!authData.user && !authData.session) return showToast("Erreur lors de l'inscription");
+
+  const uid = authData.user?.id || authData.session?.user?.id;
+  if (!uid) return showToast("Erreur : identifiant manquant");
+
+  // Créer le profil dans la table users
+  await sb('users', {
     method: 'POST',
-    body: JSON.stringify({ id: authData.user.id, email, username, full_name: fullName, instagram_handle: instagram || null, quartier })
+    body: JSON.stringify({ id: uid, email, username, full_name: fullName, instagram_handle: instagram || null, quartier })
   });
 
-  if (ok) {
-    showToast('Compte créé ! Connectez-vous.');
-    showLogin();
+  // Connexion automatique si session disponible
+  if (authData.session?.access_token) {
+    localStorage.setItem('mfc_token', authData.session.access_token);
+    localStorage.setItem('mfc_uid', uid);
+    await loadProfile();
+    initApp();
   } else {
-    showToast('Erreur création du profil');
+    showToast('Compte créé ! Connectez-vous maintenant.');
+    showLogin();
   }
 }
 
@@ -611,17 +622,22 @@ async function initApp() {
       window.addEventListener('devicemotion', handleMotion, true);
     }
   }
+  showTab('home');
 }
 
 // ── TABS ──
+const ALL_TABS = ['home','parcours','tracker','classement','profil'];
 function showTab(name) {
-  document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
-  const tab = document.getElementById(`tab-${name}`);
-  if (tab) tab.classList.remove('hidden');
+  ALL_TABS.forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = 'none';
+  });
+  const tab = document.getElementById('tab-' + name);
+  if (tab) tab.style.display = (name === 'tracker') ? 'flex' : 'block';
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  const navBtn = document.getElementById(`nav-${name}`);
+  const navBtn = document.getElementById('nav-' + name);
   if (navBtn) navBtn.classList.add('active');
-  if (name === 'tracker') { resizeCanvas(); if (mapCenter) renderMap(); }
+  if (name === 'tracker') { setTimeout(() => { resizeCanvas(); if (mapCenter) renderMap(); }, 100); }
 }
 
 // ── BORNES ──
