@@ -290,6 +290,9 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
     <button class="nav-btn" onclick="showTab('classement')" id="nav-classement">
       <span>🏆</span><label>Classement</label>
     </button>
+    <button class="nav-btn" onclick="showTab('social')" id="nav-social">
+      <span>📣</span><label>Social</label>
+    </button>
     <button class="nav-btn" onclick="showTab('profil')" id="nav-profil">
       <span>👤</span><label>Profil</label>
     </button>
@@ -298,7 +301,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   <!-- HOME TAB -->
   <div id="tab-home" class="content">
     <div class="top-bar">
-      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div class="top-logo">MOOVIN <em>MONACO</em></div>
       <div class="top-right">
         
         <div class="pts-pill">⭐ <span id="homePts">0</span></div>
@@ -339,7 +342,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   <!-- PARCOURS TAB -->
   <div id="tab-parcours" class="content" style="display:none;">
     <div class="top-bar">
-      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div class="top-logo">MOOVIN <em>MONACO</em></div>
       <div style="font-size:12px;color:var(--gris);">6 parcours officiels</div>
     </div>
     <div style="padding:16px 20px 12px;">
@@ -352,7 +355,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   <!-- TRACKER TAB -->
   <div id="tab-tracker" style="display:none;flex-direction:column;height:100%;max-height:100vh;padding-bottom:0;overflow:hidden;">
     <div class="top-bar">
-      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div class="top-logo">MOOVIN <em>MONACO</em></div>
       <div class="gps-status searching" id="gpsStatus">
         <div class="gps-dot" style="background:var(--or);"></div>
         <span id="gpsLabel">GPS...</span>
@@ -401,7 +404,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   <!-- CLASSEMENT TAB -->
   <div id="tab-classement" class="content" style="display:none;">
     <div class="top-bar">
-      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div class="top-logo">MOOVIN <em>MONACO</em></div>
       <div style="font-size:11px;color:var(--gris);letter-spacing:1px;">JUIN 2025</div>
     </div>
     <div style="padding:16px 20px 0;">
@@ -419,7 +422,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   <!-- PROFIL TAB -->
   <div id="tab-profil" class="content" style="display:none;">
     <div class="top-bar">
-      <div class="top-logo">MONACO <em>FIT</em></div>
+      <div class="top-logo">MOOVIN <em>MONACO</em></div>
       <button onclick="logout()" style="background:none;border:none;color:var(--gris);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">Déconnexion</button>
     </div>
     <div class="profil-header">
@@ -717,7 +720,7 @@ async function initApp() {
 }
 
 // ── TABS ──
-const ALL_TABS = ['home','parcours','tracker','classement','profil'];
+const ALL_TABS = ['home','parcours','tracker','classement','social','profil'];
 function showTab(name) {
   ALL_TABS.forEach(t => {
     const el = document.getElementById('tab-' + t);
