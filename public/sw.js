@@ -1,4 +1,4 @@
-const CACHE_NAME = 'monaco-fit-v1';
+const CACHE_NAME = 'moovin-monaco-v2';
 const ASSETS = [
   '/',
   '/index.html',
