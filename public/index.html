@@ -188,6 +188,24 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
 .pts-slider { width:100%; margin:12px 0; accent-color:var(--rouge); }
 .btn-don { width:100%; padding:16px; background:var(--vert); color:var(--noir); border:none; font-family:'Inter',sans-serif; font-size:14px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; margin-top:8px; }
 
+
+/* PARCOURS PREVIEW MODAL */
+.parcours-modal { position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:400; display:none; flex-direction:column; }
+.parcours-modal.open { display:flex; }
+.parcours-modal-header { background:var(--marine); padding:max(16px,calc(var(--safe-top)+10px)) 20px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
+.parcours-modal-title { font-family:"Bebas Neue",sans-serif; font-size:22px; letter-spacing:1px; flex:1; }
+.btn-close-modal { background:none; border:1px solid rgba(255,255,255,0.15); color:var(--gris); padding:8px 14px; font-family:Inter,sans-serif; font-size:12px; cursor:pointer; }
+.parcours-modal-map { flex:1; position:relative; overflow:hidden; min-height:200px; }
+.parcours-modal-info { background:var(--marine2); flex-shrink:0; }
+.parcours-bornes-list { padding:12px 16px; display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; }
+.borne-step { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--marine); border:1px solid rgba(255,255,255,0.05); }
+.borne-step-num { width:24px; height:24px; border-radius:50%; background:var(--rouge); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; }
+.borne-step-num.done { background:var(--vert); }
+.borne-step-name { font-size:12px; font-weight:600; flex:1; }
+.borne-step-pts { font-size:11px; color:var(--or); }
+.parcours-modal-footer { padding:16px 20px; padding-bottom:max(20px,env(safe-area-inset-bottom)); background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); flex-shrink:0; }
+.btn-start-parcours { width:100%; padding:16px; background:var(--rouge); color:var(--blanc); border:none; font-family:Inter,sans-serif; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; }
+
 /* TOAST */
 .toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--marine); border:1px solid rgba(255,255,255,0.1); padding:12px 24px; font-size:13px; font-weight:600; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; z-index:999; max-width:90vw; text-align:center; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
@@ -477,6 +495,28 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   </div>
 </div>
 
+
+<!-- PARCOURS PREVIEW MODAL -->
+<div class="parcours-modal" id="parcoursModal">
+  <div class="parcours-modal-header">
+    <div>
+      <div class="parcours-modal-title" id="modalParcoursNom">Parcours</div>
+      <div style="font-size:11px;color:var(--gris);margin-top:2px;" id="modalParcoursMeta">—</div>
+    </div>
+    <button class="btn-close-modal" onclick="closeParcoursModal()">✕ Fermer</button>
+  </div>
+  <div class="parcours-modal-map">
+    <canvas id="modalMapCanvas"></canvas>
+  </div>
+  <div class="parcours-modal-info">
+    <div style="padding:10px 16px 4px;font-size:10px;color:var(--gris);letter-spacing:2px;text-transform:uppercase;">Ordre des bornes</div>
+    <div class="parcours-bornes-list" id="modalBornesList"></div>
+  </div>
+  <div class="parcours-modal-footer">
+    <button class="btn-start-parcours" id="btnStartParcours" onclick="confirmerDemarrageParcours()">▶ Démarrer ce parcours</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -725,9 +765,167 @@ function renderParcoursList() {
   `).join('');
 }
 
+let currentParcours = null;
+let modalMapCanvas = null, modalMapCtx = null;
+
 function startParcours(parcoursId) {
+  const p = parcours.find(x => x.id === parcoursId);
+  if (!p) return;
+  currentParcours = p;
+  
+  // Fill modal info
+  const diffs = { facile:'Facile', intermediaire:'Intermédiaire', sportif:'Sportif', elite:'Élite' };
+  document.getElementById('modalParcoursNom').textContent = p.nom;
+  document.getElementById('modalParcoursMeta').textContent = 
+    `${p.distance_km} km · ~${p.duree_min} min · ${diffs[p.difficulte]||p.difficulte} · +${p.points_completion} pts`;
+  
+  // Get bornes for this parcours
+  const parcoursbornes = (p.bornes_ids || []).map((bid, i) => {
+    const b = bornes.find(x => x.id === bid);
+    return b ? { ...b, order: i + 1 } : null;
+  }).filter(Boolean);
+  
+  // Render bornes list
+  const listEl = document.getElementById('modalBornesList');
+  listEl.innerHTML = parcoursbornes.length > 0 
+    ? parcoursbornes.map(b => `
+      <div class="borne-step">
+        <div class="borne-step-num">${b.order}</div>
+        <div class="borne-step-name">${b.nom}</div>
+        <div class="borne-step-pts">+${b.points_scan} pts</div>
+      </div>`).join('')
+    : '<div style="padding:12px;color:var(--gris);font-size:12px;">Explorez librement — scannez toutes les bornes !</div>';
+  
+  // Open modal
+  document.getElementById('parcoursModal').classList.add('open');
+  
+  // Draw map after modal opens
+  setTimeout(() => renderParcoursPreviewMap(parcoursbornes), 100);
+}
+
+function closeParcoursModal() {
+  document.getElementById('parcoursModal').classList.remove('open');
+  currentParcours = null;
+}
+
+function renderParcoursPreviewMap(parcoursbornes) {
+  const canvas = document.getElementById('modalMapCanvas');
+  const area = canvas.parentElement;
+  canvas.width = area.offsetWidth;
+  canvas.height = area.offsetHeight;
+  const ctx2 = canvas.getContext('2d');
+  
+  // Background
+  ctx2.fillStyle = '#0d1520';
+  ctx2.fillRect(0, 0, canvas.width, canvas.height);
+  
+  if (parcoursbornes.length === 0 && !mapCenter) {
+    ctx2.fillStyle = 'rgba(138,138,154,0.4)';
+    ctx2.font = '13px Inter';
+    ctx2.textAlign = 'center';
+    ctx2.fillText('GPS requis pour afficher la carte', canvas.width/2, canvas.height/2);
+    return;
+  }
+  
+  // Determine center and zoom from bornes or current position
+  let centerLat, centerLon, zoom = 15;
+  if (parcoursbornes.length > 0) {
+    const lats = parcoursbornes.map(b => b.latitude);
+    const lons = parcoursbornes.map(b => b.longitude);
+    centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    centerLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+    // Adjust zoom based on spread
+    const latSpread = Math.max(...lats) - Math.min(...lats);
+    const lonSpread = Math.max(...lons) - Math.min(...lons);
+    const spread = Math.max(latSpread, lonSpread);
+    if (spread > 0.01) zoom = 14;
+    else if (spread > 0.005) zoom = 15;
+    else zoom = 16;
+  } else {
+    centerLat = mapCenter.lat;
+    centerLon = mapCenter.lon;
+  }
+  
+  const n = Math.pow(2, zoom), ts = 256;
+  const cTX = (centerLon + 180) / 360 * n;
+  const cLatR = centerLat * Math.PI / 180;
+  const cTY = (1 - Math.log(Math.tan(cLatR) + 1/Math.cos(cLatR)) / Math.PI) / 2 * n;
+  
+  // Draw OSM tiles
+  const tilesX = Math.ceil(canvas.width / ts) + 2;
+  const tilesY = Math.ceil(canvas.height / ts) + 2;
+  for (let tx = Math.floor(cTX - tilesX/2); tx <= Math.floor(cTX + tilesX/2); tx++) {
+    for (let ty = Math.floor(cTY - tilesY/2); ty <= Math.floor(cTY + tilesY/2); ty++) {
+      const key = `${zoom}/${tx}/${ty}`;
+      if (!tileCache[key]) {
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.src = `https://${"abc"[(tx+ty)%3]}.tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+        img.onload = () => { tileCache[key] = img; renderParcoursPreviewMap(parcoursbornes); };
+        tileCache[key] = img; continue;
+      }
+      const img = tileCache[key];
+      if (img.complete && img.naturalWidth > 0) {
+        const px = canvas.width/2 + (tx - cTX) * ts;
+        const py = canvas.height/2 + (ty - cTY) * ts;
+        ctx2.globalAlpha = 1; ctx2.drawImage(img, px, py, ts, ts);
+        ctx2.globalAlpha = .5; ctx2.fillStyle = '#0d1520'; ctx2.fillRect(px, py, ts, ts);
+        ctx2.globalAlpha = 1;
+      }
+    }
+  }
+  
+  // Convert lat/lon to pixel helper
+  const toPixel = (lat, lon) => {
+    const p = { x: (lon+180)/360*n*ts, y: (1 - Math.log(Math.tan(lat*Math.PI/180) + 1/Math.cos(lat*Math.PI/180))/Math.PI)/2*n*ts };
+    const c = { x: cTX*ts, y: cTY*ts };
+    return { x: canvas.width/2 + (p.x - c.x), y: canvas.height/2 + (p.y - c.y) };
+  };
+  
+  // Draw route line between bornes
+  if (parcoursbornes.length > 1) {
+    ctx2.beginPath();
+    ctx2.strokeStyle = 'rgba(212,0,26,0.6)';
+    ctx2.lineWidth = 2;
+    ctx2.setLineDash([8, 4]);
+    parcoursbornes.forEach((b, i) => {
+      const px = toPixel(b.latitude, b.longitude);
+      if (i === 0) ctx2.moveTo(px.x, px.y); else ctx2.lineTo(px.x, px.y);
+    });
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+  
+  // Draw numbered borne circles
+  parcoursbornes.forEach((b, i) => {
+    const px = toPixel(b.latitude, b.longitude);
+    // Outer glow
+    ctx2.beginPath(); ctx2.arc(px.x, px.y, 16, 0, Math.PI*2);
+    ctx2.fillStyle = 'rgba(212,0,26,0.2)'; ctx2.fill();
+    // Circle
+    ctx2.beginPath(); ctx2.arc(px.x, px.y, 12, 0, Math.PI*2);
+    ctx2.fillStyle = '#D4001A'; ctx2.fill();
+    ctx2.strokeStyle = '#FFFFFF'; ctx2.lineWidth = 2; ctx2.stroke();
+    // Number
+    ctx2.fillStyle = '#FFFFFF';
+    ctx2.font = 'bold 11px Inter';
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.fillText(b.order, px.x, px.y);
+  });
+  
+  // Current position if available
+  if (mapCenter) {
+    const cp = toPixel(mapCenter.lat, mapCenter.lon);
+    ctx2.beginPath(); ctx2.arc(cp.x, cp.y, 8, 0, Math.PI*2);
+    ctx2.fillStyle = '#00C864'; ctx2.fill();
+    ctx2.strokeStyle = '#FFFFFF'; ctx2.lineWidth = 2; ctx2.stroke();
+  }
+}
+
+function confirmerDemarrageParcours() {
+  closeParcoursModal();
   showTab('tracker');
-  showToast('📍 Mode guidé activé — suivez les bornes sur la carte');
+  showToast('📍 Mode guidé — suivez les bornes numérotées');
 }
 
 // ── RANKING ──
