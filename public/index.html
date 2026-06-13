@@ -538,8 +538,13 @@ async function login() {
   const data = await sbAuth('token?grant_type=password', { email, password });
   if (data.access_token) {
     currentUser = data.user;
+    const newUid = data.user.id;
+    // Clear old profile cache if different user
+    if (localStorage.getItem('mfc_uid') !== newUid) {
+      userProfile = null;
+    }
     localStorage.setItem('mfc_token', data.access_token);
-    localStorage.setItem('mfc_uid', data.user.id);
+    localStorage.setItem('mfc_uid', newUid);
     await loadProfile();
     initApp();
   } else {
@@ -561,25 +566,32 @@ async function register() {
   const authData = await sbAuth('signup', { email, password, options: { data: { username, full_name: fullName, quartier } } });
 
   if (authData.error) return showToast('Erreur : ' + (authData.error.message || 'Réessayez'));
-  if (!authData.user && !authData.session) return showToast("Erreur lors de l'inscription");
 
+  // Get uid whether email confirmed or not
   const uid = authData.user?.id || authData.session?.user?.id;
   if (!uid) return showToast("Erreur : identifiant manquant");
 
-  // Créer le profil dans la table users
+  // Always try to create the profile
   await sb('users', {
     method: 'POST',
     body: JSON.stringify({ id: uid, email, username, full_name: fullName, instagram_handle: instagram || null, quartier })
   });
 
-  // Connexion automatique si session disponible
+  // Save pending profile for after email confirmation
+  localStorage.setItem('pending_uid', uid);
+  localStorage.setItem('pending_username', username);
+  localStorage.setItem('pending_fullname', fullName);
+  localStorage.setItem('pending_quartier', quartier);
+
+  // Auto-login if session available (email confirmation disabled)
   if (authData.session?.access_token) {
     localStorage.setItem('mfc_token', authData.session.access_token);
     localStorage.setItem('mfc_uid', uid);
     await loadProfile();
     initApp();
   } else {
-    showToast('Compte créé ! Connectez-vous maintenant.');
+    // Email confirmation required
+    showToast('✅ Compte créé ! Vérifiez votre email puis connectez-vous.');
     showLogin();
   }
 }
