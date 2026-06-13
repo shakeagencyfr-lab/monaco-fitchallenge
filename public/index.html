@@ -127,14 +127,14 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
 
 /* TRACKER */
 #tracker { background:var(--noir); }
-.tracker-map { flex:1; position:relative; overflow:hidden; min-height:200px; max-height:calc(100vh - 320px); }
+.tracker-map { flex:1; position:relative; overflow:hidden; min-height:150px; overflow:hidden; }
 #mapCanvas { width:100%; height:100%; display:block; }
 .tracker-metrics { display:grid; grid-template-columns:repeat(4,1fr); background:var(--marine2); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
 .t-metric { padding:12px 6px; text-align:center; border-right:1px solid rgba(255,255,255,0.04); }
 .t-metric:last-child { border-right:none; }
 .t-val { font-family:'Bebas Neue',sans-serif; font-size:26px; line-height:1; }
 .t-lbl { font-size:9px; color:var(--gris); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
-.tracker-bottom { background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); padding:16px 20px 24px; padding-bottom:max(24px, env(safe-area-inset-bottom)); flex-shrink:0; position:relative; z-index:10; min-height:90px; }
+.tracker-bottom { background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); padding:16px 20px; padding-bottom:max(80px, calc(env(safe-area-inset-bottom) + 60px)); flex-shrink:0; position:relative; z-index:10; }
 .tracker-timer { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:3px; text-align:center; margin-bottom:12px; line-height:1; }
 .tracker-timer.running { color:var(--vert); }
 .tracker-timer.paused { color:var(--or); }
@@ -241,13 +241,13 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
     <input class="auth-input" type="text" id="regFullName" placeholder="Prénom et nom">
     <input class="auth-input" type="text" id="regInstagram" placeholder="@instagram (optionnel)">
     <select class="quartier-select" id="regQuartier">
-      <option value="frontalier">Frontalier (hors Monaco)</option>
       <option value="monaco-ville">Monaco-Ville</option>
       <option value="monte-carlo">Monte-Carlo</option>
       <option value="condamine">Condamine</option>
       <option value="fontvieille">Fontvieille</option>
       <option value="larvotto">Larvotto</option>
       <option value="moneghetti">Moneghetti</option>
+      <option value="frontalier">Frontalier (hors Monaco)</option>
     </select>
     <input class="auth-input" type="email" id="regEmail" placeholder="Email">
     <input class="auth-input" type="password" id="regPassword" placeholder="Mot de passe (min 6 caractères)">
@@ -321,7 +321,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   </div>
 
   <!-- TRACKER TAB -->
-  <div id="tab-tracker" style="display:none;flex-direction:column;height:calc(100vh - 70px);padding-bottom:0;overflow:hidden;">
+  <div id="tab-tracker" style="display:none;flex-direction:column;height:100%;max-height:100vh;padding-bottom:0;overflow:hidden;">
     <div class="top-bar">
       <div class="top-logo">MONACO <em>FIT</em></div>
       <div class="gps-status searching" id="gpsStatus">
@@ -357,7 +357,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
         <video id="qrVideo" style="width:280px;height:280px;object-fit:cover;border:2px solid var(--rouge);"></video>
         <canvas id="qrCanvas" style="display:none;"></canvas>
         <div id="qrResult" style="margin-top:16px;font-size:13px;color:var(--or);text-align:center;min-height:20px;"></div>
-        <button onclick="closeQRScanner()" style="margin-top:20px;background:none;border:1px solid rgba(255,255,255,0.2);color:var(--gris);padding:10px 24px;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;">Fermer</button>
+        <button onclick="closeQRScanner()" style="position:fixed;bottom:max(80px,calc(env(safe-area-inset-bottom)+60px));left:50%;transform:translateX(-50%);background:var(--rouge);border:none;color:var(--blanc);padding:14px 40px;font-family:Inter,sans-serif;font-size:14px;font-weight:700;cursor:pointer;z-index:999;">✕ Fermer</button>
       </div>
     </div>
     <div class="tracker-bottom">
@@ -709,25 +709,29 @@ function startParcours(parcoursId) {
 
 // ── RANKING ──
 async function loadRanking(type = 'general') {
-  const { data } = await sb('users?select=id,username,full_name,quartier,points_mensuels,niveau&order=points_mensuels.desc&limit=10');
+  const { data } = await sb('users?select=id,username,full_name,quartier,points_mensuels,niveau,avatar_url&order=points_mensuels.desc&limit=10');
   if (data) renderRanking(data, type);
 }
 
 function renderRanking(users, type) {
   const uid = localStorage.getItem('mfc_uid');
   const colors = ['#FFD700','#C0C0C0','#CD7F32'];
-  const html = users.map((u, i) => `
+  const html = users.map((u, i) => {
+    const avatarHtml = u.avatar_url
+      ? `<div class="rank-avatar" style="background:none;overflow:hidden;"><img src="${u.avatar_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;"></div>`
+      : `<div class="rank-avatar" style="background:${colors[i]||'var(--marine2)'};">${(u.full_name||u.username||'?')[0].toUpperCase()}</div>`;
+    return `
     <div class="rank-item ${u.id === uid ? 'me' : ''}">
       <div class="rank-pos ${i < 3 ? 'top' : ''}">${i < 3 ? ['🥇','🥈','🥉'][i] : i+1}</div>
-      <div class="rank-avatar" style="background:${colors[i]||'var(--marine2)'};">${(u.full_name||u.username||'?')[0].toUpperCase()}</div>
+      ${avatarHtml}
       <div class="rank-info">
         <div class="rank-name">${u.full_name||u.username}</div>
         <div class="rank-detail">${u.quartier||'—'}</div>
       </div>
       <div class="rank-pts">${(u.points_mensuels||0).toLocaleString('fr-FR')}</div>
       ${u.id === uid ? '<div class="rank-you">Vous</div>' : ''}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   document.getElementById('homeRanking').innerHTML = html;
   document.getElementById('classementList').innerHTML = html;
 }
