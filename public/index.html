@@ -394,7 +394,11 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
       <button onclick="logout()" style="background:none;border:none;color:var(--gris);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;">Déconnexion</button>
     </div>
     <div class="profil-header">
-      <div class="profil-avatar" id="profilAvatar">?</div>
+      <div style="position:relative;flex-shrink:0;">
+        <div class="profil-avatar" id="profilAvatar" style="cursor:pointer;" onclick="document.getElementById('photoInput').click()">?</div>
+        <div style="position:absolute;bottom:0;right:0;width:20px;height:20px;background:var(--rouge);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;" onclick="document.getElementById('photoInput').click()">📷</div>
+        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="uploadPhoto(this)">
+      </div>
       <div>
         <div class="profil-name" id="profilName">—</div>
         <div class="profil-insta" id="profilInsta"></div>
@@ -436,10 +440,11 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
     <div class="share-txt" id="shareTxt">Session terminée !</div>
     <div class="share-tag">#MonacoFitChallenge #Monaco</div>
   </div>
+  <canvas id="shareCanvas" style="display:none;"></canvas>
   <div class="share-btns">
-    <button class="share-btn ig" onclick="shareIG()">📸 Instagram</button>
+    <button class="share-btn ig" onclick="downloadShareImage()">📸 Télécharger l'image</button>
     <button class="share-btn wa" onclick="shareWA()">💬 WhatsApp</button>
-    <button class="share-btn cp" onclick="copyShare()">📋 Copier</button>
+    <button class="share-btn cp" onclick="copyShare()">📋 Copier texte</button>
   </div>
   <button class="btn-new-session" onclick="newSession()">Nouvelle session</button>
 </div>
@@ -599,7 +604,13 @@ function updateProfileUI() {
   document.getElementById('homeLevel').textContent = u.niveau || 1;
   document.getElementById('homeLevelTitle').textContent = levels[u.niveau] || 'Marcheur';
 
-  document.getElementById('profilAvatar').textContent = initial;
+  const avatarEl = document.getElementById('profilAvatar');
+  if (u.avatar_url) {
+    avatarEl.innerHTML = `<img src="${u.avatar_url}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`;
+    document.getElementById('shareAv').innerHTML = `<img src="${u.avatar_url}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`;
+  } else {
+    avatarEl.textContent = initial;
+  }
   document.getElementById('profilName').textContent = u.full_name || u.username;
   document.getElementById('profilInsta').textContent = u.instagram_handle ? `@${u.instagram_handle}` : '';
   document.getElementById('profilQuartier').textContent = u.quartier || '';
@@ -927,7 +938,7 @@ function checkNearbyBornes(lat, lon, speed) {
 }
 
 // ── PEDOMETER ──
-let lastAcc = null, lastStepTime = 0, accelHistory = [], stepThreshold = 10;
+let lastAcc = null, lastStepTime = 0, accelHistory = [], stepThreshold = 3;
 function handleMotion(e) {
   if (!session.active || session.paused) return;
   const acc = e.accelerationIncludingGravity; if (!acc) return;
@@ -1130,6 +1141,178 @@ if (window.location.pathname.startsWith('/scan/')) {
     if (!uid) { showToast('Connectez-vous pour scanner'); return; }
     await scanCommerceBySlug(slug);
   });
+}
+
+
+// ── PHOTO UPLOAD ──
+async function uploadPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result;
+    const uid = localStorage.getItem('mfc_uid'); if (!uid) return;
+    // Resize image
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.createElement('canvas');
+      const size = 200; canvas.width = size; canvas.height = size;
+      const ctx2 = canvas.getContext('2d');
+      // Crop square
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+      ctx2.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      const resized = canvas.toDataURL('image/jpeg', 0.7);
+      // Save to Supabase
+      const { ok } = await sb(`users?id=eq.${uid}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ avatar_url: resized, updated_at: new Date().toISOString() })
+      });
+      if (ok) {
+        userProfile.avatar_url = resized;
+        // Update avatar display
+        const avatar = document.getElementById('profilAvatar');
+        avatar.innerHTML = `<img src="${resized}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">`;
+        document.getElementById('shareAv').innerHTML = `<img src="${resized}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`;
+        showToast('✅ Photo mise à jour !');
+      }
+    };
+    img.src = base64;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── SHARE IMAGE GENERATION ──
+function downloadShareImage() {
+  const canvas = document.getElementById('shareCanvas');
+  canvas.width = 1080; canvas.height = 1080;
+  const ctx2 = canvas.getContext('2d');
+
+  // Background
+  const grad = ctx2.createLinearGradient(0, 0, 1080, 1080);
+  grad.addColorStop(0, '#0A0A0F');
+  grad.addColorStop(0.5, '#1A1A2E');
+  grad.addColorStop(1, '#0A0A0F');
+  ctx2.fillStyle = grad;
+  ctx2.fillRect(0, 0, 1080, 1080);
+
+  // Grid
+  ctx2.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx2.lineWidth = 1;
+  for (let x = 0; x < 1080; x += 60) { ctx2.beginPath(); ctx2.moveTo(x,0); ctx2.lineTo(x,1080); ctx2.stroke(); }
+  for (let y = 0; y < 1080; y += 60) { ctx2.beginPath(); ctx2.moveTo(0,y); ctx2.lineTo(1080,y); ctx2.stroke(); }
+
+  // Top accent line
+  const lineGrad = ctx2.createLinearGradient(0, 0, 1080, 0);
+  lineGrad.addColorStop(0, 'transparent');
+  lineGrad.addColorStop(0.5, '#D4001A');
+  lineGrad.addColorStop(1, 'transparent');
+  ctx2.strokeStyle = lineGrad;
+  ctx2.lineWidth = 4;
+  ctx2.beginPath(); ctx2.moveTo(0, 80); ctx2.lineTo(1080, 80); ctx2.stroke();
+
+  // Monaco FitChallenge logo
+  ctx2.fillStyle = '#FFFFFF';
+  ctx2.font = 'bold 36px Arial';
+  ctx2.textAlign = 'center';
+  ctx2.fillText('MONACO', 540, 52);
+  ctx2.fillStyle = '#D4001A';
+  ctx2.fillText('FITCHALLENGE', 540, 72);
+
+  // Avatar circle
+  const avatarY = 200;
+  ctx2.save();
+  ctx2.beginPath();
+  ctx2.arc(540, avatarY, 80, 0, Math.PI * 2);
+  ctx2.clip();
+  if (userProfile?.avatar_url) {
+    const img = new Image();
+    img.src = userProfile.avatar_url;
+    ctx2.drawImage(img, 460, avatarY - 80, 160, 160);
+  } else {
+    const avatarGrad = ctx2.createLinearGradient(460, avatarY-80, 620, avatarY+80);
+    avatarGrad.addColorStop(0, '#D4001A');
+    avatarGrad.addColorStop(1, '#C9A84C');
+    ctx2.fillStyle = avatarGrad;
+    ctx2.fillRect(460, avatarY-80, 160, 160);
+    ctx2.fillStyle = '#FFFFFF';
+    ctx2.font = 'bold 64px Arial';
+    ctx2.textAlign = 'center';
+    ctx2.fillText((userProfile?.full_name || userProfile?.username || '?')[0].toUpperCase(), 540, avatarY + 22);
+  }
+  ctx2.restore();
+
+  // Name
+  ctx2.fillStyle = '#FFFFFF';
+  ctx2.font = 'bold 48px Arial';
+  ctx2.textAlign = 'center';
+  ctx2.fillText(userProfile?.full_name || userProfile?.username || '—', 540, 340);
+
+  // Instagram handle
+  if (userProfile?.instagram_handle) {
+    ctx2.fillStyle = '#C9A84C';
+    ctx2.font = '28px Arial';
+    ctx2.fillText('@' + userProfile.instagram_handle, 540, 385);
+  }
+
+  // Stats boxes
+  const stats = [
+    { val: document.getElementById('resDist').textContent, lbl: 'KM' },
+    { val: document.getElementById('resPas').textContent, lbl: 'PAS' },
+    { val: document.getElementById('resCal').textContent, lbl: 'KCAL' },
+    { val: document.getElementById('resTime').textContent, lbl: 'DURÉE' },
+  ];
+  const boxW = 220, boxH = 160, startX = 80, boxY = 450, gap = 20;
+  stats.forEach((s, i) => {
+    const x = startX + i * (boxW + gap);
+    // Box background
+    ctx2.fillStyle = i === 0 ? 'rgba(212,0,26,0.2)' : 'rgba(26,26,46,0.8)';
+    ctx2.strokeStyle = i === 0 ? '#D4001A' : 'rgba(255,255,255,0.1)';
+    ctx2.lineWidth = i === 0 ? 2 : 1;
+    ctx2.beginPath();
+    ctx2.roundRect(x, boxY, boxW, boxH, 8);
+    ctx2.fill(); ctx2.stroke();
+    // Value
+    ctx2.fillStyle = i === 0 ? '#D4001A' : i === 1 ? '#00C864' : '#FFFFFF';
+    ctx2.font = 'bold 52px Arial';
+    ctx2.textAlign = 'center';
+    ctx2.fillText(s.val, x + boxW/2, boxY + 80);
+    // Label
+    ctx2.fillStyle = '#8A8A9A';
+    ctx2.font = '22px Arial';
+    ctx2.fillText(s.lbl, x + boxW/2, boxY + 118);
+  });
+
+  // Date
+  const dateStr = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  ctx2.fillStyle = '#8A8A9A';
+  ctx2.font = '26px Arial';
+  ctx2.textAlign = 'center';
+  ctx2.fillText(dateStr, 540, 680);
+
+  // Quartier
+  if (userProfile?.quartier) {
+    ctx2.fillStyle = 'rgba(201,168,76,0.8)';
+    ctx2.font = '24px Arial';
+    ctx2.fillText('📍 ' + userProfile.quartier, 540, 720);
+  }
+
+  // Bottom accent
+  ctx2.strokeStyle = lineGrad;
+  ctx2.lineWidth = 4;
+  ctx2.beginPath(); ctx2.moveTo(0, 1000); ctx2.lineTo(1080, 1000); ctx2.stroke();
+
+  // Hashtags
+  ctx2.fillStyle = '#D4001A';
+  ctx2.font = 'bold 28px Arial';
+  ctx2.textAlign = 'center';
+  ctx2.fillText('#MonacoFitChallenge  #Monaco  #FitLife', 540, 1048);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = 'monaco-fitchallenge.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('📸 Image téléchargée — postez-la sur Instagram !');
 }
 
 // ── TOAST ──
