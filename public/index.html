@@ -127,14 +127,14 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
 
 /* TRACKER */
 #tracker { background:var(--noir); }
-.tracker-map { flex:1; position:relative; overflow:hidden; min-height:200px; max-height:calc(100vh - 280px); }
+.tracker-map { flex:1; position:relative; overflow:hidden; min-height:200px; max-height:calc(100vh - 320px); }
 #mapCanvas { width:100%; height:100%; display:block; }
 .tracker-metrics { display:grid; grid-template-columns:repeat(4,1fr); background:var(--marine2); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
 .t-metric { padding:12px 6px; text-align:center; border-right:1px solid rgba(255,255,255,0.04); }
 .t-metric:last-child { border-right:none; }
 .t-val { font-family:'Bebas Neue',sans-serif; font-size:26px; line-height:1; }
 .t-lbl { font-size:9px; color:var(--gris); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
-.tracker-bottom { background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); padding:16px 20px; padding-bottom:max(16px, env(safe-area-inset-bottom)); flex-shrink:0; position:relative; z-index:10; }
+.tracker-bottom { background:var(--marine); border-top:1px solid rgba(255,255,255,0.06); padding:16px 20px 24px; padding-bottom:max(24px, env(safe-area-inset-bottom)); flex-shrink:0; position:relative; z-index:10; min-height:90px; }
 .tracker-timer { font-family:'Bebas Neue',sans-serif; font-size:44px; letter-spacing:3px; text-align:center; margin-bottom:12px; line-height:1; }
 .tracker-timer.running { color:var(--vert); }
 .tracker-timer.paused { color:var(--or); }
@@ -321,7 +321,7 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
   </div>
 
   <!-- TRACKER TAB -->
-  <div id="tab-tracker" style="display:none;flex-direction:column;height:100%;padding-bottom:0;">
+  <div id="tab-tracker" style="display:none;flex-direction:column;height:calc(100vh - 70px);padding-bottom:0;overflow:hidden;">
     <div class="top-bar">
       <div class="top-logo">MONACO <em>FIT</em></div>
       <div class="gps-status searching" id="gpsStatus">
@@ -862,7 +862,7 @@ function initGPS() {
     if (session.active && !session.paused) {
       if (session.lastPos) {
         const d = haversine(session.lastPos.lat, session.lastPos.lon, lat, lon);
-        if (d > 2 && d < 200) {
+        if (d > 0.5 && d < 200) {
           session.dist += d;
           session.cal = Math.round(session.dist / 1000 * 65);
           session.positions.push({ lat, lon });
