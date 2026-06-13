@@ -281,22 +281,39 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
     <button class="nav-btn active" onclick="showTab('home')" id="nav-home">
       <span>🏠</span><label>Accueil</label>
     </button>
-    <button class="nav-btn" onclick="showTab('parcours')" id="nav-parcours">
-      <span>🗺️</span><label>Parcours</label>
-    </button>
     <button class="nav-btn" onclick="showTab('tracker')" id="nav-tracker">
       <span>📍</span><label>Tracker</label>
     </button>
     <button class="nav-btn" onclick="showTab('classement')" id="nav-classement">
       <span>🏆</span><label>Classement</label>
     </button>
-    <button class="nav-btn" onclick="showTab('social')" id="nav-social">
-      <span>📣</span><label>Social</label>
-    </button>
     <button class="nav-btn" onclick="showTab('profil')" id="nav-profil">
       <span>👤</span><label>Profil</label>
     </button>
+    <button class="nav-btn" onclick="toggleHamburger()" id="nav-more">
+      <span>☰</span><label>Plus</label>
+    </button>
   </nav>
+
+  <!-- HAMBURGER MENU -->
+  <div id="hamburgerMenu" style="display:none;position:fixed;bottom:70px;right:0;left:0;z-index:250;background:var(--marine);border-top:1px solid rgba(255,255,255,0.08);padding:8px 0;">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:8px 12px;">
+      <button onclick="showTabFromMenu('parcours')" style="background:var(--marine2);border:none;color:var(--blanc);padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-family:Inter,sans-serif;">
+        <span style="font-size:20px;">🗺️</span><span style="font-size:9px;font-weight:600;letter-spacing:1px;">PARCOURS</span>
+      </button>
+      <button onclick="showTabFromMenu('social')" style="background:var(--marine2);border:none;color:var(--blanc);padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-family:Inter,sans-serif;">
+        <span style="font-size:20px;">📣</span><span style="font-size:9px;font-weight:600;letter-spacing:1px;">SOCIAL</span>
+      </button>
+      <button onclick="showEquipeMenu()" style="background:var(--marine2);border:none;color:var(--blanc);padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-family:Inter,sans-serif;">
+        <span style="font-size:20px;">👥</span><span style="font-size:9px;font-weight:600;letter-spacing:1px;">ÉQUIPE</span>
+      </button>
+      <button id="adminMenuBtn" onclick="openAdmin();closeHamburger();" style="display:none;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--or);padding:14px 8px;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font-family:Inter,sans-serif;">
+        <span style="font-size:20px;">⚙️</span><span style="font-size:9px;font-weight:600;letter-spacing:1px;">ADMIN</span>
+      </button>
+    </div>
+  </div>
+  <!-- Backdrop -->
+  <div id="hamburgerBackdrop" onclick="closeHamburger()" style="display:none;position:fixed;inset:0;z-index:240;"></div>
 
   <!-- HOME TAB -->
   <div id="tab-home" class="content">
@@ -417,6 +434,40 @@ html,body { height:100%; background:var(--noir); color:var(--blanc); font-family
     </div>
     <div class="rank-list" id="classementList"></div>
     <div style="height:20px;"></div>
+  </div>
+
+  <!-- SOCIAL TAB -->
+  <div id="tab-social" class="content" style="display:none;">
+    <div class="top-bar">
+      <div class="top-logo">MOOVIN <em>MONACO</em></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="switchSocialTab('public')" id="btnSocialPublic" style="background:var(--rouge);color:var(--blanc);border:none;padding:6px 14px;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;">PUBLIC</button>
+        <button onclick="switchSocialTab('equipe')" id="btnSocialEquipe" style="background:var(--marine2);color:var(--gris);border:1px solid rgba(255,255,255,0.1);padding:6px 14px;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;">ÉQUIPE</button>
+      </div>
+    </div>
+    <!-- PUBLIC FEED -->
+    <div id="socialPublicFeed" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="text-align:center;color:var(--gris);font-size:13px;padding:40px 0;">Chargement du fil...</div>
+    </div>
+    <!-- EQUIPE FEED -->
+    <div id="socialEquipeFeed" style="padding:12px 16px;display:none;flex-direction:column;gap:10px;">
+      <div id="equipeNoMember" style="text-align:center;padding:40px 20px;">
+        <div style="font-size:40px;margin-bottom:12px;">👥</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px;">Vous n'avez pas encore d'équipe</div>
+        <div style="font-size:12px;color:var(--gris);margin-bottom:20px;">Créez ou rejoignez une équipe pour accéder au mur privé</div>
+        <button onclick="showCreateEquipe()" style="background:var(--rouge);color:var(--blanc);border:none;padding:12px 24px;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;margin-right:8px;">+ CRÉER</button>
+        <button onclick="showJoinEquipe()" style="background:var(--marine2);color:var(--blanc);border:1px solid rgba(255,255,255,0.15);padding:12px 24px;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;">REJOINDRE</button>
+      </div>
+      <div id="equipePostBox" style="display:none;flex-direction:column;gap:10px;">
+        <div style="background:var(--marine);border:1px solid rgba(255,255,255,0.06);padding:12px;">
+          <div style="font-size:11px;color:var(--gris);margin-bottom:8px;letter-spacing:1px;" id="equipePostHeader">ÉQUIPE —</div>
+          <textarea id="equipePostText" placeholder="Partagez quelque chose avec votre équipe..." style="width:100%;background:var(--marine2);border:1px solid rgba(255,255,255,0.1);color:var(--blanc);padding:10px;font-family:Inter,sans-serif;font-size:13px;resize:none;height:72px;box-sizing:border-box;"></textarea>
+          <button onclick="postEquipeMessage()" style="margin-top:8px;background:var(--rouge);color:var(--blanc);border:none;padding:10px 20px;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;float:right;">PUBLIER</button>
+          <div style="clear:both;"></div>
+        </div>
+        <div id="equipePostsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- PROFIL TAB -->
@@ -1603,6 +1654,31 @@ window.addEventListener('load', () => {
 });
 
 
+
+// ── HAMBURGER MENU ──
+function toggleHamburger() {
+  const menu = document.getElementById('hamburgerMenu');
+  const backdrop = document.getElementById('hamburgerBackdrop');
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  backdrop.style.display = isOpen ? 'none' : 'block';
+}
+function closeHamburger() {
+  document.getElementById('hamburgerMenu').style.display = 'none';
+  document.getElementById('hamburgerBackdrop').style.display = 'none';
+}
+function showTabFromMenu(name) {
+  closeHamburger();
+  showTab(name);
+  // Update nav active state
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+}
+function showEquipeMenu() {
+  closeHamburger();
+  showTab('social');
+  setTimeout(() => switchSocialTab('equipe'), 100);
+}
+
 // ── SOCIAL FEED ──
 const ADMIN_EMAIL = 'tedeschisebastien@gmail.com';
 let currentSocialTab = 'public';
@@ -1993,6 +2069,8 @@ function checkAdminStatus() {
   if (email === ADMIN_EMAIL) {
     const btn = document.getElementById('adminBtn');
     if (btn) btn.style.display = 'block';
+    const menuBtn = document.getElementById('adminMenuBtn');
+    if (menuBtn) menuBtn.style.display = 'flex';
   }
 }
 
